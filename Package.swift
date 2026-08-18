@@ -11,5 +11,7 @@ let package = Package(
         // Pure logic: DDC/CI packets, MCCS tables, capability strings, EDID, brightness math.
         // No IOKit or AppKit, so everything here is unit tested.
         .target(name: "MonitorCore"),
+
+        .testTarget(name: "MonitorCoreTests", dependencies: ["MonitorCore"]),
     ]
 )
