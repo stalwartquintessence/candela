@@ -1,0 +1,24 @@
+# SwiftPM
+.build/
+.swiftpm/
+Package.resolved
+
+# Build output
+dist/
+
+# Editor settings (the VS Code Swift extension regenerates launch.json)
+.vscode/
+
+# Xcode (if someone opens the package in Xcode)
+*.xcodeproj/
+xcuserdata/
+DerivedData/
+
+# Signing material must never be committed
+*.p12
+*.cer
+*.pem
+*.key
+
+# macOS
+.DS_Store
