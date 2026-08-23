@@ -12,6 +12,13 @@ let package = Package(
         // No IOKit or AppKit, so everything here is unit tested.
         .target(name: "MonitorCore"),
 
+        // Hardware access: IORegistry discovery, private IOAVService I2C, gamma tables.
+        .target(
+            name: "MonitorIO",
+            dependencies: ["MonitorCore"],
+            linkerSettings: [.linkedFramework("IOKit"), .linkedFramework("CoreGraphics")]
+        ),
+
         .testTarget(name: "MonitorCoreTests", dependencies: ["MonitorCore"]),
     ]
 )
