@@ -5,6 +5,7 @@ let package = Package(
     name: "Candela",
     platforms: [.macOS(.v13)],
     products: [
+        .executable(name: "candelactl", targets: ["CandelaCLI"]),
         .library(name: "MonitorCore", targets: ["MonitorCore"]),
     ],
     targets: [
@@ -18,6 +19,9 @@ let package = Package(
             dependencies: ["MonitorCore"],
             linkerSettings: [.linkedFramework("IOKit"), .linkedFramework("CoreGraphics")]
         ),
+
+        // Command line tool for diagnostics and scripting.
+        .executableTarget(name: "CandelaCLI", dependencies: ["MonitorCore", "MonitorIO"]),
 
         .testTarget(name: "MonitorCoreTests", dependencies: ["MonitorCore"]),
     ]
