@@ -1,0 +1,45 @@
+name: Release
+
+# Push a tag like v0.1.0 to publish a GitHub Release with the zip, dmg and checksums.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Publish release
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # build number = commit count
+
+      - name: Check tag matches the app version
+        run: |
+          VERSION=$(sed -n 's/.*static let string = "\(.*\)".*/\1/p' Sources/MonitorCore/Version.swift)
+          if [ "v$VERSION" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match AppVersion.string ($VERSION)"
+            exit 1
+          fi
+
+      - name: Unit tests
+        run: ./scripts/test.sh
+
+      - name: Build and package
+        run: ./scripts/package.sh
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Release notes = this version's section of CHANGELOG.md (without the heading).
+          ./scripts/release-notes.sh "${GITHUB_REF_NAME#v}" > "$RUNNER_TEMP/notes.md"
+          gh release create "$GITHUB_REF_NAME" \
+            dist/*.zip dist/*.dmg dist/SHA256SUMS.txt \
+            --title "Candela ${GITHUB_REF_NAME#v}" \
+            --notes-file "$RUNNER_TEMP/notes.md" \
+            --verify-tag

@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # build number = commit count
+
+      - name: Toolchain
+        run: |
+          xcode-select -p
+          swift --version
+
+      - name: Unit tests
+        run: ./scripts/test.sh
+
+      - name: Build, sign (ad-hoc) and package
+        run: ./scripts/package.sh
+
+      - name: Smoke test the CLI
+        run: |
+          dist/candelactl --version
+          dist/candelactl --help > /dev/null
+          # CI machines have no external display; `list` must still succeed.
+          dist/candelactl list
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Candela-${{ github.sha }}
+          path: |
+            dist/*.zip
+            dist/*.dmg
+            dist/SHA256SUMS.txt
+          retention-days: 14
