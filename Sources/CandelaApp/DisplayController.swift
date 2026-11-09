@@ -56,9 +56,6 @@ final class DisplayController: ObservableObject, Identifiable {
     private var writeGenerations: [UInt8: Int] = [:]
     private let generationLock = NSLock()
 
-    /// Called on the main thread whenever state changes.
-    var onChange: (() -> Void)?
-
     var displayID: CGDirectDisplayID { display.displayID }
 
     init(display: ExternalDisplay, name: String, gamma: GammaDimmer) {
@@ -97,7 +94,6 @@ final class DisplayController: ObservableObject, Identifiable {
             settings.sendWithoutReplies = newValue
             if newValue { values = storedValues().merging(values) { _, current in current } }
             applySoftwareDimming()
-            onChange?()
         }
     }
 
@@ -187,12 +183,10 @@ final class DisplayController: ObservableObject, Identifiable {
         guard let channel else {
             status = .noService
             applySoftwareDimming()
-            onChange?()
             return
         }
         // Keep a working status while re-checking so brightness does not flip to software dimming.
         if !status.isWorking { status = .probing }
-        onChange?()
         let display = self.display
         Self.ddcQueue.async { [weak self] in
             let result = channel.probe()
@@ -219,7 +213,6 @@ final class DisplayController: ObservableObject, Identifiable {
                     self.values = self.storedValues()
                 }
                 self.applySoftwareDimming()
-                self.onChange?()
             }
         }
     }

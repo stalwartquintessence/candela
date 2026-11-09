@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import MonitorCore
 import SwiftUI
 
@@ -7,11 +8,16 @@ final class AppModel: ObservableObject {
     @Published var controllers: [DisplayController] = []
     @Published var brightnessKeysEnabled = false
     @Published var launchAtLogin = false
+    /// The display whose Display Info page is showing, or nil for the main page.
+    @Published var infoDisplay: DisplayController?
+
+    func showInfo(for controller: DisplayController?) {
+        withAnimation(.easeInOut(duration: 0.2)) { infoDisplay = controller }
+    }
 }
 
 /// What the window asks the app to do.
 struct ControlsActions {
-    var showInfo: (DisplayController) -> Void
     var setLaunchAtLogin: (Bool) -> Void
     var enableBrightnessKeys: () -> Void
     var redetect: () -> Void
@@ -19,12 +25,23 @@ struct ControlsActions {
 }
 
 /// Candela has no menu bar icon. This window is where its controls live; opening Candela again
-/// (from Spotlight, Finder or Launchpad) brings it back.
+/// (from Spotlight, Finder or Launchpad) brings it back. Display Info opens as a page inside it.
 struct ControlsView: View {
     @ObservedObject var model: AppModel
     let actions: ControlsActions
 
     var body: some View {
+        Group {
+            if let controller = model.infoDisplay {
+                InfoPage(controller: controller) { model.showInfo(for: nil) }
+            } else {
+                mainPage
+            }
+        }
+        .frame(minWidth: 460, idealWidth: 480, minHeight: 380, idealHeight: 480)
+    }
+
+    private var mainPage: some View {
         VStack(spacing: 0) {
             Form {
                 if model.controllers.isEmpty {
@@ -34,7 +51,7 @@ struct ControlsView: View {
                     }
                 }
                 ForEach(model.controllers) { controller in
-                    DisplaySection(controller: controller) { actions.showInfo(controller) }
+                    DisplaySection(controller: controller) { model.showInfo(for: controller) }
                 }
                 Section {
                     Toggle("Launch at Login", isOn: Binding(get: { model.launchAtLogin }, set: actions.setLaunchAtLogin))
@@ -63,7 +80,6 @@ struct ControlsView: View {
             }
             .padding(12)
         }
-        .frame(minWidth: 460, idealWidth: 480, minHeight: 380, idealHeight: 460)
     }
 }
 
@@ -92,10 +108,18 @@ private struct DisplaySection: View {
                     }
                 }
             }
-            HStack {
-                Spacer()
-                Button("Display Info...", action: showInfo)
+            // A navigation row, like the ones that open a page in System Settings.
+            Button(action: showInfo) {
+                HStack {
+                    Text("Display Info")
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
         } header: {
             VStack(alignment: .leading, spacing: 2) {
                 Text(controller.name)
@@ -153,8 +177,10 @@ private struct LevelRow: View {
 }
 
 final class ControlsWindowController: NSWindowController {
+    private var titleUpdates: AnyCancellable?
+
     init(model: AppModel, actions: ControlsActions) {
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 480, height: 460),
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 480, height: 480),
                               styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         window.title = "Candela"
         window.isReleasedWhenClosed = false
@@ -162,6 +188,10 @@ final class ControlsWindowController: NSWindowController {
         window.center()
         window.setFrameAutosaveName("Candela")
         super.init(window: window)
+        // The title names the page, like System Settings: "Candela", or "HP Z27 Info".
+        titleUpdates = model.$infoDisplay.sink { [weak window] display in
+            window?.title = display.map { "\($0.name) Info" } ?? "Candela"
+        }
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }

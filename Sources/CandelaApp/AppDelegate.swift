@@ -19,7 +19,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let keyTap = MediaKeyTap()
     private let model = AppModel()
     private var controlsWindow: ControlsWindowController?
-    private var infoWindows: [ObjectIdentifier: InfoWindowController] = [:]
     private var accessibilityTimer: Timer?
     private var lastTrusted: Bool?
     private var pendingReconfigure: DispatchWorkItem?
@@ -99,12 +98,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func showControls() {
         if controlsWindow == nil {
             controlsWindow = ControlsWindowController(model: model, actions: ControlsActions(
-                showInfo: { [weak self] controller in self?.showInfo(for: controller) },
                 setLaunchAtLogin: { [weak self] on in self?.setLaunchAtLogin(on) },
                 enableBrightnessKeys: { [weak self] in self?.openAccessibilitySettings() },
                 redetect: { [weak self] in self?.redetect() },
                 about: { [weak self] in self?.showAbout() }))
         }
+        // A window that was closed opens again on its main page.
+        if controlsWindow?.window?.isVisible != true { model.infoDisplay = nil }
         refreshSettings()
         controlsWindow?.present()
     }
@@ -136,10 +136,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 next.append(existing)
             } else {
                 let controller = DisplayController(display: display, name: name, gamma: gamma)
-                controller.onChange = { [weak self, weak controller] in
-                    guard let self, let controller else { return }
-                    self.infoWindows[ObjectIdentifier(controller)]?.refresh()
-                }
                 next.append(controller)
                 fresh.append(controller)
             }
@@ -147,7 +143,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         for old in controllers where !next.contains(where: { $0 === old }) {
             gamma.restore(old.displayID)
-            infoWindows.removeValue(forKey: ObjectIdentifier(old))?.close()
+        }
+        // Leave Display Info when its display is gone.
+        if let shown = model.infoDisplay, !next.contains(where: { $0 === shown }) {
+            model.infoDisplay = nil
         }
         controllers = next
         fresh.forEach { $0.probe() }
@@ -187,16 +186,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func redetect() {
         controllers.forEach { gamma.restore($0.displayID) }
         controllers.removeAll()
-        infoWindows.values.forEach { $0.close() }
-        infoWindows.removeAll()
         refreshDisplays()
-    }
-
-    private func showInfo(for controller: DisplayController) {
-        let key = ObjectIdentifier(controller)
-        let window = infoWindows[key] ?? InfoWindowController(controller: controller)
-        infoWindows[key] = window
-        window.present()
     }
 
     // MARK: Brightness keys
