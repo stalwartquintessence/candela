@@ -16,8 +16,8 @@ git remote add origin https://github.com/<your-username>/candela.git
 git push -u origin main
 ```
 
-Before the first public release, change `BUNDLE_ID` in `scripts/config.sh` to something you own,
-for example `io.github.<your-username>.candela`, and update the log command in the README.
+If you publish your own fork, change `BUNDLE_ID` in `scripts/config.sh` to an identifier you own,
+for example `io.github.<your-username>.Candela`, and update the log command in the README.
 macOS stores preferences and permissions under the bundle ID, so changing it later resets them.
 
 Public repositories get unlimited free GitHub Actions minutes, so the included workflows run at

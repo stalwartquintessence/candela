@@ -146,7 +146,7 @@ docs/                 Distribution guide and hardware investigation notes
   choose **Enable Brightness Keys** in Candela's menu and switch it on. If you build from
   source, run `./scripts/create-signing-identity.sh` once first; otherwise macOS ties the
   permission to one exact build.
-- **Logs**: `/usr/bin/log stream --level debug --predicate 'subsystem == "io.github.candela-display.Candela"'`
+- **Logs**: `/usr/bin/log stream --level debug --predicate 'subsystem == "io.github.stalwartquintessence.Candela"'`
   (in zsh, plain `log` is a shell builtin, so use the full path). `--level debug` includes every
   raw I2C transaction; leave it out for just state changes and errors.
 

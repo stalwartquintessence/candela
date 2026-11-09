@@ -1,11 +1,11 @@
 # Shared settings for the build scripts. Source this file; do not run it.
 #
 # To rename the app, change APP_NAME here and the two product names in Package.swift.
-# Change BUNDLE_ID to something you own (for example io.github.<your-username>.candela) before
-# your first public release; macOS keys preferences and permissions to it.
+# Forks: change BUNDLE_ID to an identifier you own (for example io.github.<your-username>.Candela)
+# before publishing. macOS keys preferences and permissions to it, so changing it later resets them.
 
 APP_NAME="Candela"
-BUNDLE_ID="io.github.candela-display.Candela"
+BUNDLE_ID="io.github.stalwartquintessence.Candela"
 CLI_NAME="candelactl"
 APP_PRODUCT="Candela"       # executable product in Package.swift
 CLI_PRODUCT="candelactl"    # executable product in Package.swift
