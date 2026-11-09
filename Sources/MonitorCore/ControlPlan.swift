@@ -19,9 +19,9 @@ public struct ControlPlan: Equatable, Sendable {
     public let sliders: [UInt8]
     /// Pickers for the monitor's own preset modes, in display order.
     public let pickers: [Picker]
-    /// The advanced "send DDC/CI without replies" option applies only to a channel that never answers.
+    /// The advanced "send DDC/CI without replies" option applies only to a channel that never
+    /// answers, and never to HDMI converters, which block DDC/CI in both directions.
     public let canSendWithoutReplies: Bool
-    private let isHDMIConverter: Bool
 
     /// - Parameters:
     ///   - hasChannel: macOS exposes an I2C channel for the display.
@@ -31,10 +31,13 @@ public struct ControlPlan: Equatable, Sendable {
     public init(hasChannel: Bool, status: DDCStatus, sendWithoutReplies: Bool = false,
                 capabilities: Capabilities? = nil, knownFeatures: Set<UInt8> = [], isHDMIConverter: Bool = false) {
         self.status = status
-        self.isHDMIConverter = isHDMIConverter
         let forced = hasChannel && sendWithoutReplies
         usesHardwareBrightness = hasChannel && (status.isWorking || sendWithoutReplies)
-        if case .noReply = status { canSendWithoutReplies = hasChannel } else { canSendWithoutReplies = false }
+        if case .noReply = status {
+            canSendWithoutReplies = hasChannel && !isHDMIConverter
+        } else {
+            canSendWithoutReplies = false
+        }
 
         guard usesHardwareBrightness else {
             sliders = []
@@ -61,18 +64,16 @@ public struct ControlPlan: Equatable, Sendable {
         up == "DP" && down == "HDMI"
     }
 
-    /// Up to two short lines under the display name in the window. The full explanation is
+    /// Up to two short lines under the display name in the window. The explanation is
     /// `status.advice`, shown as a tooltip and in Display Info.
     public var statusLine: String {
         if case .probing = status { return "Checking the monitor..." }
-        let ceiling = "100% = the brightness set in the monitor's own menu."
         switch (usesHardwareBrightness, status) {
         case (true, .working): return "Controls the monitor directly (DDC/CI)."
         case (true, _): return "Sending DDC/CI without replies (see Display Info)."
-        case (false, .noReply) where isHDMIConverter: return "No monitor controls over HDMI. " + ceiling
-        case (false, .noReply): return "Monitor does not answer DDC/CI. " + ceiling
-        case (false, .noService): return "No DDC/CI channel. " + ceiling
-        default: return ceiling
+        default:
+            let ceiling = "100% = the monitor's own brightness."
+            return status.advice.map { "\($0.headline). \(ceiling)" } ?? ceiling
         }
     }
 

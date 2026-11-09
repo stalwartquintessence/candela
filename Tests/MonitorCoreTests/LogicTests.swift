@@ -163,13 +163,13 @@ struct DisplayReportTests {
 struct DDCStatusTests {
     @Test func hdmiConverterAdviceNamesTheCause() {
         let advice = DDCStatus.noReplyAdvice(transportUpstream: "DP", transportDownstream: "HDMI")
-        #expect(advice.contains("HDMI"))
-        #expect(advice.contains("USB-C"))
+        #expect(advice.headline.contains("HDMI"))
+        #expect(advice.detail.contains("USB-C"))
     }
 
     @Test func genericAdvicePointsToMonitorMenu() {
         let advice = DDCStatus.noReplyAdvice(transportUpstream: "DP", transportDownstream: "DP")
-        #expect(advice.contains("on-screen menu"))
+        #expect(advice.detail.contains("on-screen menu"))
     }
 
     @Test func workingAndAdvice() {
@@ -177,7 +177,10 @@ struct DDCStatusTests {
         #expect(!DDCStatus.noService.isWorking)
         #expect(!DDCStatus.probing.isWorking)
         #expect(DDCStatus.noService.advice != nil)
-        #expect(DDCStatus.noReply(advice: "a").advice == "a")
+        let advice = DDCAdvice(headline: "Blocked", detail: "Try another cable.")
+        #expect(DDCStatus.noReply(advice: advice).advice == advice)
+        #expect(DDCStatus.noReply(advice: advice).headline == "Blocked")
+        #expect(advice.text == "Blocked. Try another cable.")
         #expect(DDCStatus.unknown.advice == nil)
     }
 
@@ -215,12 +218,11 @@ struct MenuFeatureTests {
         #expect(!MCCS.commonFeatures.contains(MCCS.volume))
     }
 
-    @Test func adviceExplainsTheSoftwareBrightnessCeiling() {
+    @Test func adviceExplainsTheSoftwareBrightnessCeiling() throws {
         for advice in [DDCStatus.noReplyAdvice(transportUpstream: "DP", transportDownstream: "HDMI"),
                        DDCStatus.noReplyAdvice(transportUpstream: "DP", transportDownstream: "DP"),
-                       DDCStatus.noService.advice ?? ""] {
-            #expect(advice.contains("100%"))
-            #expect(advice.contains("monitor's menu"))
+                       try #require(DDCStatus.noService.advice)] {
+            #expect(advice.detail.contains("100% equals the monitor's own brightness"))
         }
     }
 }

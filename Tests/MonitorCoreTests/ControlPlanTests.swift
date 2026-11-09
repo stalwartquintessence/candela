@@ -6,16 +6,17 @@ import Testing
 @Suite("Display controls")
 struct ControlPlanTests {
     static let working = DDCStatus.working(profile: "test")
-    static let silent = DDCStatus.noReply(advice: "advice")
+    static let silent = DDCStatus.noReply(advice: DDCStatus.noReplyAdvice(transportUpstream: "DP", transportDownstream: "DP"))
+    static let blockedByHDMI = DDCStatus.noReply(advice: DDCStatus.noReplyAdvice(transportUpstream: "DP", transportDownstream: "HDMI"))
 
     @Test func hdmiConverterOffersOnlyBrightness() {
-        let plan = ControlPlan(hasChannel: true, status: Self.silent, isHDMIConverter: true)
+        let plan = ControlPlan(hasChannel: true, status: Self.blockedByHDMI, isHDMIConverter: true)
         #expect(!plan.usesHardwareBrightness)
         #expect(plan.sliders.isEmpty)
         #expect(plan.pickers.isEmpty)
-        #expect(plan.canSendWithoutReplies)
-        #expect(plan.statusLine.hasPrefix("No monitor controls over HDMI."))
-        #expect(plan.statusLine.contains("100%"))
+        // HDMI converters block DDC/CI both ways, so sending without replies cannot help there.
+        #expect(!plan.canSendWithoutReplies)
+        #expect(plan.statusLine == "This HDMI port blocks monitor controls. 100% = the monitor's own brightness.")
         #expect(plan.methodDescription == "Software dimming of brightness")
     }
 
@@ -24,7 +25,7 @@ struct ControlPlanTests {
         #expect(!plan.usesHardwareBrightness)
         #expect(plan.sliders.isEmpty)
         #expect(!plan.canSendWithoutReplies)
-        #expect(plan.statusLine.hasPrefix("No DDC/CI channel."))
+        #expect(plan.statusLine.hasPrefix("No DDC/CI channel for this display."))
     }
 
     @Test func showsOnlyWhatTheMonitorReports() throws {
@@ -81,7 +82,8 @@ struct ControlPlanTests {
 
     @Test func silentMonitorOnOtherConnections() {
         let plan = ControlPlan(hasChannel: true, status: Self.silent)
-        #expect(plan.statusLine.hasPrefix("Monitor does not answer DDC/CI."))
+        #expect(plan.statusLine.hasPrefix("The monitor does not answer DDC/CI."))
+        #expect(plan.canSendWithoutReplies)
     }
 
     @Test func detectsHDMIConverters() {

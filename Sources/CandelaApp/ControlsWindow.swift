@@ -107,7 +107,7 @@ private struct DisplaySection: View {
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .help(controller.status.advice ?? "")
+            .help(controller.status.advice?.text ?? "")
         }
     }
 

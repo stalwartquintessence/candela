@@ -123,7 +123,7 @@ if command == "edid" {
 
 func makeChannel() -> DDCChannel {
     guard let service = display.avService?.service else {
-        fail("\(display.name) has no DDC/CI channel (\(DDCStatus.noService.advice ?? "")).", code: 3)
+        fail("\(display.name): \(DDCStatus.noService.advice?.text ?? "no DDC/CI channel.")", code: 3)
     }
     let channel = DDCChannel(service: service)
     if options.verbose { channel.trace = { print("  i2c " + $0) } }
@@ -147,7 +147,7 @@ case "probe":
         print("  \(attempt.profile): \(attempt.reply.summary)")
     }
     print(status.summary)
-    if let advice = status.advice { print(advice) }
+    if let advice = status.advice { print(advice.text) }
     exit(status.isWorking ? 0 : 3)
 
 case "info":
@@ -170,12 +170,12 @@ case "info":
     let input = display.reportInput(ddcStatus: status, controlMethod: plan.methodDescription,
                                     profile: profile, capabilities: caps, values: values)
     print(DisplayReport.build(input).plainText)
-    if let advice = status.advice { print("\nNote: " + advice) }
+    if let advice = status.advice { print("\nNote: " + advice.text) }
 
 case "caps":
     let channel = makeChannel()
     let (status, _) = probeStatus(channel)
-    guard status.isWorking else { fail(status.summary + ". " + (status.advice ?? ""), code: 3) }
+    guard status.isWorking else { fail(status.advice?.text ?? status.summary, code: 3) }
     guard let caps = channel.readCapabilities() else { fail("The display answered DDC/CI but returned no capabilities string.", code: 3) }
     print(caps.raw)
     print("")
@@ -190,7 +190,7 @@ case "get":
     let code = feature(name)
     let channel = makeChannel()
     let (status, _) = probeStatus(channel)
-    guard status.isWorking else { fail(status.summary + ". " + (status.advice ?? ""), code: 3) }
+    guard status.isWorking else { fail(status.advice?.text ?? status.summary, code: 3) }
     let reply = channel.getVCP(code)
     switch reply {
     case .value(let v):

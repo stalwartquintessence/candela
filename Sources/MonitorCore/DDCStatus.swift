@@ -1,3 +1,18 @@
+/// Why a monitor's own controls cannot be reached, and what to do about it. Kept short: a
+/// headline and one or two sentences.
+public struct DDCAdvice: Equatable, Sendable {
+    public let headline: String
+    public let detail: String
+
+    public init(headline: String, detail: String) {
+        self.headline = headline
+        self.detail = detail
+    }
+
+    /// Headline and detail as one paragraph, for the command line and copied reports.
+    public var text: String { "\(headline). \(detail)" }
+}
+
 /// What we know about hardware control of one display.
 public enum DDCStatus: Equatable, Sendable {
     /// Not probed yet.
@@ -6,7 +21,7 @@ public enum DDCStatus: Equatable, Sendable {
     /// No I2C service exists for this display (virtual display, some adapters and docks).
     case noService
     /// A service exists but the display never answered a DDC/CI request.
-    case noReply(advice: String)
+    case noReply(advice: DDCAdvice)
     /// The display answers DDC/CI.
     case working(profile: String)
 
@@ -26,22 +41,40 @@ public enum DDCStatus: Equatable, Sendable {
         }
     }
 
-    public var advice: String? {
+    /// Title for the status shown at the top of Display Info.
+    public var headline: String {
+        switch self {
+        case .unknown: return "Not checked yet"
+        case .probing: return "Checking the monitor..."
+        case .working: return "Candela controls this monitor directly"
+        case .noReply, .noService: return advice?.headline ?? summary
+        }
+    }
+
+    public var advice: DDCAdvice? {
         switch self {
         case .noReply(let advice): return advice
-        case .noService: return "macOS exposes no DDC/CI channel for this display, so Candela cannot reach the monitor's own controls. " + DDCStatus.softwareDimmingNote
+        case .noService: return DDCStatus.noServiceAdvice
         default: return nil
         }
     }
 
     /// Advice for a display that does not answer, based on how it is connected.
-    public static func noReplyAdvice(transportUpstream up: String?, transportDownstream down: String?) -> String {
+    public static func noReplyAdvice(transportUpstream up: String?, transportDownstream down: String?) -> DDCAdvice {
         if ControlPlan.isHDMIConverter(transportUpstream: up, transportDownstream: down) {
-            return "This display is connected through a DisplayPort to HDMI converter, like the built-in HDMI port of many Apple Silicon Macs, and that connection does not pass DDC/CI, so Candela cannot reach the monitor's own controls. " + softwareDimmingNote + " For brightness, contrast, saturation, picture modes and volume from the monitor itself, connect it with a video-capable USB-C cable or a USB-C to DisplayPort cable."
+            return DDCAdvice(
+                headline: "This HDMI port blocks monitor controls",
+                detail: "Brightness dims the picture instead, so 100% equals the monitor's own brightness. "
+                    + "For full control, connect with a USB-C or DisplayPort cable.")
         }
-        return "The monitor does not answer DDC/CI. Make sure DDC/CI is enabled in its on-screen menu; some docks, adapters and KVM switches block it, so try a direct cable. " + softwareDimmingNote
+        return DDCAdvice(
+            headline: "The monitor does not answer DDC/CI",
+            detail: "Turn on DDC/CI in the monitor's on-screen menu, or connect without a dock or adapter. "
+                + "Until then, brightness dims the picture and 100% equals the monitor's own brightness.")
     }
 
-    /// Why 100% in software dimming is not the monitor's full brightness.
-    public static let softwareDimmingNote = "Meanwhile Brightness dims the picture in software, which can only go darker than the monitor's own brightness setting: 100% in Candela equals the brightness set in the monitor's menu. Set the monitor's brightness to 100 with its buttons to get the full range."
+    static let noServiceAdvice = DDCAdvice(
+        headline: "No DDC/CI channel for this display",
+        detail: "macOS offers no way to reach this monitor's controls. "
+            + "Brightness dims the picture instead, so 100% equals the monitor's own brightness.")
 }
