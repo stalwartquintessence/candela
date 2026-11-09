@@ -24,5 +24,5 @@ Please paste the output of these commands (they only read from the display):
 /Applications/Candela.app/Contents/MacOS/candelactl probe --verbose
 ```
 
-You can also use "Copy Report" in Candela's Display Info window. Remove the serial number if
+You can also use "Copy Report" on Candela's Display Info page. Remove the serial number if
 you prefer not to share it.

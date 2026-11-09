@@ -19,7 +19,7 @@ First release, replacing the earlier prototype.
   indicator in the style of macOS 26 at the top right of that display.
 - No menu bar or Dock icon: Candela runs in the background, and opening it shows its window.
   It starts quietly when launched at login.
-- Display Info window: EDID details (vendor, model, serial, manufacture date, size, native
+- Display Info page: EDID details (vendor, model, serial, manufacture date, size, native
   mode, refresh range), connection type, DDC/CI status, capabilities and current values,
   with Copy Report.
 - `candelactl` command line tool: `list`, `info`, `edid`, `probe`, `caps`, `get`, `set`, with

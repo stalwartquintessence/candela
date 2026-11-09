@@ -9,6 +9,10 @@
   Free and open source. Apple Silicon, macOS 13 Ventura or later.
 </p>
 
+<p align="center">
+  <img src="docs/images/window.png" width="460" alt="The Candela window with brightness for an HP Z27 on an HDMI port">
+</p>
+
 ## Features
 
 - **The monitor's own controls over DDC/CI**: brightness, contrast, saturation, its picture
@@ -19,15 +23,11 @@
 - **Brightness keys** work on the display under the pointer. A small indicator in the style
   of macOS 26 appears at the top right of that display. Hold Option+Shift for fine steps.
 - **No menu bar icon**: Candela runs quietly in the background. Open it to see its window.
-- **Display Info**: vendor, model, serial number, manufacture date, size, native resolution and
-  refresh range decoded from the EDID, plus connection type, DDC/CI status and the monitor's
-  full capability list. One click copies a report.
+- **Display Info**, a page in the same window: vendor, model, serial number, manufacture date,
+  size, native resolution and refresh range decoded from the EDID, plus connection type,
+  DDC/CI status and the monitor's full capability list. One click copies a report.
 - **`candelactl`**, a command line tool for scripting and diagnostics.
 - Remembers settings per monitor. No network access, no analytics.
-
-<p align="center">
-  <img src="docs/images/display-info.png" width="460" alt="Display Info window">
-</p>
 
 ## Compatibility
 
@@ -65,8 +65,8 @@ runs brings the window back. Each external display gets its own section:
 
 - **Brightness** is always there. **Contrast**, **Saturation**, **Volume**, **Picture Mode**
   and **Color Preset** appear when the monitor offers them, with the values it lists.
-- **Display Info** opens the details window. **Check DDC/CI Again** re-tests the connection,
-  for example after you change cables.
+- **Display Info** opens the details as a page of the same window; **Back** returns.
+  **Check DDC/CI Again** re-tests the connection, for example after you change cables.
 
 The window also has **Launch at Login** and the brightness key permission. Closing the window
 keeps Candela running; to quit it, press **⌘Q** while the window is open.
