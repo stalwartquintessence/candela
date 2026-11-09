@@ -1,37 +1,50 @@
 import AppKit
 
-/// A rounded level bar: a faint track with a solid fill from the left.
-private final class LevelBar: NSView {
+/// The 16-segment level bar macOS uses for brightness and volume. Fine steps (Option+Shift)
+/// fill quarter segments, as in the system indicator.
+private final class SegmentBar: NSView {
+    static let segments = 16
     var level: Double = 0 { didSet { needsDisplay = true } }
 
     override func draw(_ dirtyRect: NSRect) {
-        let radius = bounds.height / 2
-        NSColor.labelColor.withAlphaComponent(0.18).setFill()
-        NSBezierPath(roundedRect: bounds, xRadius: radius, yRadius: radius).fill()
-        guard level > 0 else { return }
-        let width = max(bounds.height, bounds.width * CGFloat(min(level, 100) / 100))
-        NSColor.labelColor.setFill()
-        NSBezierPath(roundedRect: NSRect(x: 0, y: 0, width: width, height: bounds.height), xRadius: radius, yRadius: radius).fill()
+        let gap: CGFloat = 2
+        let count = Self.segments
+        let width = (bounds.width - gap * CGFloat(count - 1)) / CGFloat(count)
+        // Snap to quarter segments so rounding in the monitor's raw value never leaves a sliver.
+        let filled = (min(max(level, 0), 100) / 100 * Double(count) * 4).rounded() / 4
+        for i in 0 ..< count {
+            let rect = NSRect(x: CGFloat(i) * (width + gap), y: 0, width: width, height: bounds.height)
+            NSColor.labelColor.withAlphaComponent(0.22).setFill()
+            NSBezierPath(roundedRect: rect, xRadius: 1, yRadius: 1).fill()
+            let fraction = min(1, max(0, filled - Double(i)))
+            guard fraction > 0 else { continue }
+            NSColor.labelColor.setFill()
+            NSBezierPath(roundedRect: NSRect(x: rect.minX, y: rect.minY, width: rect.width * CGFloat(fraction), height: rect.height),
+                         xRadius: 1, yRadius: 1).fill()
+        }
     }
 }
 
-/// Brightness indicator in the style macOS has used since version 26: a small panel under the
-/// menu bar, at the top right of the display being adjusted. It uses the system's own glass
-/// material where available, so it follows the current look of macOS, and a blurred panel on
-/// earlier versions.
+/// Brightness indicator matching the one macOS has shown since version 26: a pill under the
+/// menu bar at the top right of the display being adjusted, with a sun and a 16-segment bar.
+/// It uses the system's own glass material where available, so it follows the current look of
+/// macOS, and a blurred panel on earlier versions.
 final class HUD {
     private enum Metrics {
-        static let size = NSSize(width: 240, height: 56)
-        static let cornerRadius: CGFloat = 18
+        static let size = NSSize(width: 300, height: 64)
+        static let cornerRadius = size.height / 2
         /// Distance from the right edge of the screen and from the menu bar.
         static let margin: CGFloat = 8
-        static let inset: CGFloat = 14
+        static let leading: CGFloat = 20
+        static let trailing: CGFloat = 30
+        static let iconSize: CGFloat = 28
+        static let iconGap: CGFloat = 14
+        static let barHeight: CGFloat = 4
         static let visibleFor: TimeInterval = 1.5
     }
 
     private let panel: NSPanel
-    private let title = NSTextField(labelWithString: "")
-    private let bar = LevelBar()
+    private let bar = SegmentBar()
     private var hideTask: DispatchWorkItem?
     /// Increases with every `show`, so a fade-out that finishes late never hides a newer update.
     private var generation = 0
@@ -46,21 +59,16 @@ final class HUD {
         panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
 
         let content = NSView(frame: frame)
-        let width = Metrics.size.width - 2 * Metrics.inset
-
-        title.font = .systemFont(ofSize: 12, weight: .semibold)
-        title.textColor = .labelColor
-        title.lineBreakMode = .byTruncatingTail
-        title.frame = NSRect(x: Metrics.inset, y: 31, width: width, height: 16)
-
-        let icon = NSImageView(frame: NSRect(x: Metrics.inset - 1, y: 9, width: 18, height: 18))
+        let icon = NSImageView(frame: NSRect(x: Metrics.leading, y: (Metrics.size.height - Metrics.iconSize) / 2,
+                                             width: Metrics.iconSize, height: Metrics.iconSize))
         icon.image = NSImage(systemSymbolName: "sun.max.fill", accessibilityDescription: nil)
-        icon.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
+        icon.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 22, weight: .medium)
         icon.contentTintColor = .labelColor
 
-        bar.frame = NSRect(x: Metrics.inset + 26, y: 14, width: width - 26, height: 8)
-
-        [title, icon, bar].forEach(content.addSubview)
+        let barX = Metrics.leading + Metrics.iconSize + Metrics.iconGap
+        bar.frame = NSRect(x: barX, y: (Metrics.size.height - Metrics.barHeight) / 2,
+                           width: Metrics.size.width - barX - Metrics.trailing, height: Metrics.barHeight)
+        [icon, bar].forEach(content.addSubview)
 
         if #available(macOS 26.0, *) {
             let glass = NSGlassEffectView(frame: frame)
@@ -82,9 +90,8 @@ final class HUD {
         }
     }
 
-    /// Shows `level` (0 to 100) for the display called `name`, on `screen`.
+    /// Shows `level` (0 to 100) on `screen`. `name` is the display's name, read out by VoiceOver.
     func show(level: Double, name: String, on screen: NSScreen) {
-        title.stringValue = name
         bar.level = level
         let area = screen.visibleFrame
         panel.setFrameOrigin(NSPoint(x: area.maxX - Metrics.size.width - Metrics.margin,
