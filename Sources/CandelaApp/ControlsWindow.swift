@@ -176,7 +176,7 @@ private struct LevelRow: View {
     }
 }
 
-final class ControlsWindowController: NSWindowController {
+final class ControlsWindowController: NSWindowController, NSWindowDelegate {
     private var titleUpdates: AnyCancellable?
 
     init(model: AppModel, actions: ControlsActions) {
@@ -185,9 +185,14 @@ final class ControlsWindowController: NSWindowController {
         window.title = "Candela"
         window.isReleasedWhenClosed = false
         window.contentView = NSHostingView(rootView: ControlsView(model: model, actions: actions))
+        // Only the close button: minimizing or zooming a small utility window adds nothing.
+        // The window can still be resized from its edges.
+        window.standardWindowButton(.miniaturizeButton)?.isHidden = true
+        window.standardWindowButton(.zoomButton)?.isHidden = true
         window.center()
         window.setFrameAutosaveName("Candela")
         super.init(window: window)
+        window.delegate = self
         // The title names the page, like System Settings: "Candela", or "HP Z27 Info".
         titleUpdates = model.$infoDisplay.sink { [weak window] display in
             window?.title = display.map { "\($0.name) Info" } ?? "Candela"
@@ -195,6 +200,9 @@ final class ControlsWindowController: NSWindowController {
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+
+    /// Double-clicking the title bar zooms windows by default; with no zoom button it should not.
+    func windowShouldZoom(_ window: NSWindow, toFrame newFrame: NSRect) -> Bool { false }
 
     func present() {
         NSApp.activate(ignoringOtherApps: true)
