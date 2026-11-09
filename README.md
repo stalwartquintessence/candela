@@ -68,7 +68,8 @@ runs brings the window back. Each external display gets its own section:
 - **Display Info** opens the details window. **Check DDC/CI Again** re-tests the connection,
   for example after you change cables.
 
-The window also has **Launch at Login**, the brightness key permission and **Quit Candela**.
+The window also has **Launch at Login** and the brightness key permission. Closing the window
+keeps Candela running; to quit it, press **⌘Q** while the window is open.
 When Candela starts at login it stays in the background without opening the window.
 
 ### When the monitor's controls are not reachable

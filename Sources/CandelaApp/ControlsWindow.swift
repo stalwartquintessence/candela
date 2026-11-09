@@ -47,7 +47,7 @@ struct ControlsView: View {
                         }
                     }
                 } footer: {
-                    Text("Candela keeps running without a menu bar icon. Open it again from Spotlight or Finder to come back to this window.")
+                    Text("Closing this window keeps Candela running in the background. Open Candela again from Spotlight or Finder to come back here.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -60,7 +60,6 @@ struct ControlsView: View {
                 Button("Re-detect Displays", action: actions.redetect)
                 Spacer()
                 Button("About Candela", action: actions.about)
-                Button("Quit Candela") { NSApp.terminate(nil) }
             }
             .padding(12)
         }
