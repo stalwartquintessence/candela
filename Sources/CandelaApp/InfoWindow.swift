@@ -4,15 +4,19 @@ import SwiftUI
 
 final class InfoModel: ObservableObject {
     @Published var report: DisplayReport
-    @Published var advice: String?
-    @Published var isChecking = false
-    /// The advanced "send DDC/CI without replies" option is offered only for a silent DDC channel.
+    @Published var status: DDCStatus
+    /// The advanced "send DDC/CI without replies" option is offered only where it can help.
     @Published var canSendWithoutReplies = false
     @Published var sendWithoutReplies = false
 
-    init(report: DisplayReport, advice: String?) {
+    init(report: DisplayReport, status: DDCStatus) {
         self.report = report
-        self.advice = advice
+        self.status = status
+    }
+
+    var isChecking: Bool {
+        if case .probing = status { return true }
+        return false
     }
 }
 
@@ -23,53 +27,32 @@ struct InfoView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    if let advice = model.advice {
-                        GroupBox {
-                            Label(advice, systemImage: "info.circle")
-                                .font(.callout)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    if model.canSendWithoutReplies || model.sendWithoutReplies {
-                        GroupBox("Advanced") {
-                            Toggle(isOn: Binding(get: { model.sendWithoutReplies }, set: { onSendWithoutReplies($0) })) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Send DDC/CI commands even though the monitor does not answer")
-                                    Text("For monitors that accept commands without replying. It has no effect when the connection itself blocks DDC/CI, as HDMI converters do.")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                            }
-                            .toggleStyle(.checkbox)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.top, 4)
-                        }
-                    }
-                    ForEach(model.report.sections) { section in
-                        GroupBox(section.title) {
-                            Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 18, verticalSpacing: 6) {
-                                ForEach(section.rows) { row in
-                                    GridRow {
-                                        Text(row.label)
-                                            .foregroundStyle(.secondary)
-                                            .frame(width: 150, alignment: .leading)
-                                        Text(row.value)
-                                            .textSelection(.enabled)
-                                            .fixedSize(horizontal: false, vertical: true)
-                                    }
-                                }
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.top, 4)
+            Form {
+                Section {
+                    StatusBanner(status: model.status)
+                }
+                if model.canSendWithoutReplies || model.sendWithoutReplies {
+                    Section("Advanced") {
+                        Toggle(isOn: Binding(get: { model.sendWithoutReplies }, set: onSendWithoutReplies)) {
+                            Text("Send commands without replies")
+                            Text("Some monitors accept DDC/CI commands but never answer. Turn this on if the monitor's controls seem to do nothing.")
                         }
                     }
                 }
-                .padding(20)
+                ForEach(model.report.sections) { section in
+                    Section(section.title) {
+                        ForEach(section.rows) { row in
+                            LabeledContent(row.label) {
+                                Text(row.value)
+                                    .multilineTextAlignment(.trailing)
+                                    .textSelection(.enabled)
+                            }
+                        }
+                    }
+                }
             }
+            .formStyle(.grouped)
+
             Divider()
             HStack {
                 Button(model.isChecking ? "Checking..." : "Check DDC/CI Again", action: onRecheck)
@@ -77,7 +60,7 @@ struct InfoView: View {
                 Spacer()
                 Button("Copy Report") {
                     var text = model.report.plainText
-                    if let advice = model.advice { text += "\n\nNote: " + advice }
+                    if let advice = model.status.advice { text += "\n\nNote: " + advice.text }
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(text, forType: .string)
                 }
@@ -85,7 +68,45 @@ struct InfoView: View {
             }
             .padding(12)
         }
-        .frame(minWidth: 540, idealWidth: 560, minHeight: 460, idealHeight: 620)
+        .frame(minWidth: 520, idealWidth: 540, minHeight: 460, idealHeight: 620)
+    }
+}
+
+/// The display's DDC/CI state in a few words, with what to do about it.
+private struct StatusBanner: View {
+    let status: DDCStatus
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            icon
+                .font(.title2)
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(status.headline)
+                    .font(.headline)
+                if let detail = status.advice?.detail {
+                    Text(detail)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder private var icon: some View {
+        switch status {
+        case .working:
+            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+        case .probing:
+            ProgressView().controlSize(.small)
+        case .noReply, .noService:
+            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+        case .unknown:
+            Image(systemName: "questionmark.circle").foregroundStyle(.secondary)
+        }
     }
 }
 
@@ -96,8 +117,8 @@ final class InfoWindowController: NSWindowController, NSWindowDelegate {
 
     init(controller: DisplayController) {
         self.controller = controller
-        model = InfoModel(report: controller.report, advice: controller.status.advice?.text)
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 560, height: 620),
+        model = InfoModel(report: controller.report, status: controller.status)
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 540, height: 620),
                               styleMask: [.titled, .closable, .resizable, .miniaturizable], backing: .buffered, defer: false)
         window.title = "\(controller.name) Info"
         window.isReleasedWhenClosed = false
@@ -118,10 +139,9 @@ final class InfoWindowController: NSWindowController, NSWindowDelegate {
 
     func refresh() {
         model.report = controller.report
-        model.advice = controller.status.advice?.text
+        model.status = controller.status
         model.canSendWithoutReplies = controller.plan.canSendWithoutReplies
         model.sendWithoutReplies = controller.sendWithoutReplies
-        if case .probing = controller.status { model.isChecking = true } else { model.isChecking = false }
     }
 
     private func recheck() {
