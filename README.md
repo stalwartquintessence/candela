@@ -5,17 +5,8 @@
 <h1 align="center">Candela</h1>
 
 <p align="center">
-  Brightness, contrast, saturation, picture modes and volume for external displays, from the macOS menu bar.<br>
+  Brightness, contrast, saturation, picture modes and volume for external displays, right from your Mac's brightness keys.<br>
   Free and open source. Apple Silicon, macOS 13 Ventura or later.
-</p>
-
-<p align="center">
-  <img src="docs/images/menu-ddc.png" width="300" alt="Illustration of the Candela menu with hardware controls">
-  &nbsp;&nbsp;
-  <img src="docs/images/menu-hdmi.png" width="300" alt="Candela menu with software dimming">
-</p>
-<p align="center">
-  <sub>Left: a monitor that answers DDC/CI (illustration). Right: a connection that blocks DDC/CI.</sub>
 </p>
 
 ## Features
@@ -25,8 +16,9 @@
   your monitor reports it.
 - **Brightness still works** on connections that block DDC/CI (such as the built-in HDMI port
   of many Apple Silicon Macs), AirPlay and other virtual displays, by dimming the picture.
-- **Brightness keys** work on the display under the pointer, with a native-style overlay.
-  Hold Option+Shift for fine steps.
+- **Brightness keys** work on the display under the pointer. A small indicator in the style
+  of macOS 26 appears at the top right of that display. Hold Option+Shift for fine steps.
+- **No menu bar icon**: Candela runs quietly in the background. Open it to see its window.
 - **Display Info**: vendor, model, serial number, manufacture date, size, native resolution and
   refresh range decoded from the EDID, plus connection type, DDC/CI status and the monitor's
   full capability list. One click copies a report.
@@ -46,7 +38,7 @@
 | Docks, hubs, adapters, KVM switches | Varies; many block DDC/CI. Software dimming always works |
 | AirPlay, Sidecar, DisplayLink | Software dimming |
 
-Candela checks every display when it connects and says in the menu whether it can reach the
+Candela checks every display when it connects and says in its window whether it can reach the
 monitor's own controls. The monitor must have DDC/CI enabled in its own on-screen menu (it
 usually is by default).
 
@@ -61,16 +53,23 @@ Intel Macs are not supported: they use a different I2C interface.
    (Alternatively: `xattr -dr com.apple.quarantine /Applications/Candela.app`)
 4. To use the brightness keys, allow Candela in
    **System Settings > Privacy & Security > Accessibility**. macOS asks once on first launch;
-   later, use **Enable Brightness Keys** in Candela's menu.
+   later, use **Allow in System Settings** in Candela's window.
 
 ## Using Candela
 
-Click the sun icon in the menu bar. Each external display gets its own section:
+Candela has no menu bar or Dock icon. It runs in the background, and the brightness keys adjust
+the display under the pointer.
+
+Open Candela from Spotlight, Finder or Launchpad to see its window; opening it again while it
+runs brings the window back. Each external display gets its own section:
 
 - **Brightness** is always there. **Contrast**, **Saturation**, **Volume**, **Picture Mode**
   and **Color Preset** appear when the monitor offers them, with the values it lists.
 - **Display Info** opens the details window. **Check DDC/CI Again** re-tests the connection,
   for example after you change cables.
+
+The window also has **Launch at Login**, the brightness key permission and **Quit Candela**.
+When Candela starts at login it stays in the background without opening the window.
 
 ### When the monitor's controls are not reachable
 
@@ -122,9 +121,9 @@ once; see [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md#keep-permissions-across-bu
 ```
 Sources/MonitorCore   Pure logic, fully unit tested: DDC/CI packets and sessions (against a
                       simulated monitor), MCCS tables, capability strings, EDID decoding,
-                      display matching, which controls the menu shows, reports
+                      display matching, which controls each display offers, reports
 Sources/MonitorIO     Hardware: IORegistry discovery, IOAVService I2C transport, gamma dimming
-Sources/CandelaApp    The menu bar app (AppKit, SwiftUI for the info window)
+Sources/CandelaApp    The app (AppKit, with SwiftUI for its windows)
 Sources/CandelaCLI    candelactl
 Tests/                Swift Testing suites for MonitorCore
 scripts/              Build, test, package, icon and release tooling
@@ -143,7 +142,7 @@ docs/                 Distribution guide and hardware investigation notes
   the output.
 - **Brightness keys do nothing, or macOS keeps asking for permission**: in
   **System Settings > Privacy & Security > Accessibility**, remove every Candela entry, then
-  choose **Enable Brightness Keys** in Candela's menu and switch it on. If you build from
+  click **Allow in System Settings** in Candela's window and switch Candela on. If you build from
   source, run `./scripts/create-signing-identity.sh` once first; otherwise macOS ties the
   permission to one exact build.
 - **Logs**: `/usr/bin/log stream --level debug --predicate 'subsystem == "io.github.stalwartquintessence.Candela"'`

@@ -32,8 +32,8 @@ You can also open `Package.swift` in Xcode.
 - Keep protocol logic in `MonitorCore` (no IOKit, no AppKit) and cover it with tests in
   `Tests/MonitorCoreTests`. Hardware access belongs in `MonitorIO`, UI in `CandelaApp`.
 - Never treat a DDC reply as data unless it passes `DDCPacket.parseVCPReply`.
-- Which controls the menu shows is decided only in `ControlPlan` and pinned by
-  `ControlPlanTests`. Adding a control to the menu means changing those tests on purpose.
+- Which controls each display offers is decided only in `ControlPlan` and pinned by
+  `ControlPlanTests`. Adding a control means changing those tests on purpose.
 - DDC/CI session logic (retries, probing, capabilities) lives in `DDCChannel` and is tested
   against `SimulatedMonitor`; extend the simulator rather than testing only on hardware.
 - Tests must not use real device data such as serial numbers; build synthetic EDIDs with

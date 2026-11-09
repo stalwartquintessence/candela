@@ -9,14 +9,16 @@ All notable changes are documented here. The format follows
 First release, replacing the earlier prototype.
 
 ### Added
-- Menu bar controls per external display, taken from the monitor itself over DDC/CI:
+- Controls per external display, taken from the monitor itself over DDC/CI:
   brightness, contrast, saturation, picture modes, color presets, and volume on monitors with
   speakers. Each control appears only when the monitor reports it.
-- Brightness keeps working on connections that block DDC/CI by dimming the picture; the menu
-  explains that 100% then equals the monitor's own brightness setting.
+- Brightness keeps working on connections that block DDC/CI by dimming the picture; the
+  window explains that 100% then equals the monitor's own brightness setting.
 - Advanced option in Display Info to send DDC/CI to monitors that never reply.
 - Brightness keys for the display under the pointer (Option+Shift for fine steps), with an
-  on-screen indicator.
+  indicator in the style of macOS 26 at the top right of that display.
+- No menu bar or Dock icon: Candela runs in the background, and opening it shows its window.
+  It starts quietly when launched at login.
 - Display Info window: EDID details (vendor, model, serial, manufacture date, size, native
   mode, refresh range), connection type, DDC/CI status, capabilities and current values,
   with Copy Report.

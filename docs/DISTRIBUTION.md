@@ -112,7 +112,7 @@ against, and it stays the same for every build. To remove the identity:
 `rm -rf "$HOME/Library/Application Support/Candela Signing"`.
 
 Then, once: in **System Settings > Privacy & Security > Accessibility**, remove any old Candela
-entry, choose **Enable Brightness Keys** in Candela's menu and switch Candela on.
+entry, click **Allow in System Settings** in Candela's window and switch Candela on.
 From now on rebuilds keep the permission.
 
 (Alternatively, any code signing certificate works: set `CODESIGN_IDENTITY` to its name.)

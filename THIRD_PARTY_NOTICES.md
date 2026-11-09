@@ -35,6 +35,6 @@ SOFTWARE.
 
 ## Apple SF Symbols
 
-Menu and HUD glyphs use SF Symbols through `NSImage(systemSymbolName:)`, which Apple permits in
+Window and indicator glyphs use SF Symbols through `NSImage(systemSymbolName:)`, which Apple permits in
 apps running on Apple platforms. SF Symbols are not used in the app icon, which is original
 artwork drawn by `scripts/IconRenderer.swift`.
