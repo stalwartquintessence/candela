@@ -9,7 +9,7 @@ BUNDLE_ID="io.github.stalwartquintessence.Candela"
 CLI_NAME="candelactl"
 APP_PRODUCT="Candela"       # executable product in Package.swift
 CLI_PRODUCT="candelactl"    # executable product in Package.swift
-COPYRIGHT="Copyright © 2026 Candela contributors. MIT License."
+COPYRIGHT="Copyright © 2026 stalwartquintessence. MIT License."
 
 # Local self-signed signing identity created by scripts/create-signing-identity.sh.
 SIGNING_NAME="$APP_NAME Local Signing"

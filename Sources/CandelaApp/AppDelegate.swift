@@ -279,7 +279,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func showAbout() {
         NSApp.activate(ignoringOtherApps: true)
         let credits = NSAttributedString(
-            string: "Brightness, contrast, saturation, picture modes and volume for external displays.\n\nDDC/CI timing and display matching adapted from MonitorControl (MIT License).",
+            string: "Brightness, contrast, saturation, picture modes and volume for external displays.",
             attributes: [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor.secondaryLabelColor])
         NSApp.orderFrontStandardAboutPanel(options: [.credits: credits])
     }
