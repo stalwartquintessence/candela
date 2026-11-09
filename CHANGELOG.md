@@ -6,7 +6,9 @@ All notable changes are documented here. The format follows
 
 ## [Unreleased]
 
-First release, replacing the earlier prototype.
+## [0.1.0] - 2026-11-09
+
+First release.
 
 ### Added
 - Controls per external display, taken from the monitor itself over DDC/CI:
@@ -29,11 +31,16 @@ First release, replacing the earlier prototype.
   (for example the built-in HDMI port of Apple Silicon Macs).
 - Settings remembered per monitor. After wake and display changes, software dimming is
   restored and the DDC/CI connection to the monitor is re-established.
+- Every DDC/CI reply is checked for length, opcode and checksum before it is used, so a
+  corrupted or echoed reply can never set a wrong value.
+- For builds from source, `scripts/create-signing-identity.sh` sets up a free, stable local
+  signature, so the Accessibility permission survives rebuilds.
 
-### Fixed (compared with the prototype)
-- Replies are validated by length, opcode and checksum, so a corrupted or echoed reply can
-  no longer set a wrong brightness.
-- Debug logging is no longer redacted as `<private>`.
-- The brightness key permission no longer breaks after each rebuild:
-  `scripts/create-signing-identity.sh` sets up a free, stable local signature.
-- macOS is asked for the Accessibility permission only once, not at every launch.
+### Known limitations
+- The monitor's own controls over DDC/CI (contrast, saturation, picture modes, color presets
+  and volume) have not been verified on real hardware yet. Brightness by dimming, the
+  brightness keys and Display Info have been. Reports with `candelactl probe --verbose` output
+  are very welcome.
+- Builds are not notarized. On first launch, open **System Settings > Privacy & Security**
+  and click **Open Anyway**. After each update, macOS asks for the Accessibility permission
+  again.
