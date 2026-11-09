@@ -12,12 +12,14 @@ final class SimulatedMonitor: DDCTransport {
 
     static let ioError = Int32(bitPattern: 0xE000_02BC) // kIOReturnError
     static let nullMessage: [UInt8] = [0x6E, 0x80, 0xBE]
+    /// The request checksum seed the MCCS specification gives: destination address ^ source address.
+    static let specificationSeed: UInt8 = 0x6E ^ 0x51
 
     var features: [UInt8: Feature]
     var capabilities: String
-    /// Request checksum seeds the monitor accepts: 0x6E ^ 0x51 as the specification says, and
-    /// 0x6E for the single-byte requests MonitorControl sends. A strict monitor accepts only the first.
-    var acceptedSeeds: Set<UInt8> = [0x6E ^ 0x51, 0x6E]
+    /// Request checksum seeds the monitor accepts: the specification seed, and 0x6E for the
+    /// single-byte requests MonitorControl sends. A strict monitor accepts only the first.
+    var acceptedSeeds: Set<UInt8> = [SimulatedMonitor.specificationSeed, 0x6E]
     /// Read offset where replies appear. Reads anywhere else return the Null Message.
     var replyOffset: UInt8 = 0x00
     /// Never answers, like a monitor behind a connection that blocks DDC/CI.
@@ -99,7 +101,7 @@ struct DDCChannelTests {
 
     @Test func probeFallsBackToSpecificationChecksum() {
         let monitor = SimulatedMonitor()
-        monitor.acceptedSeeds = [0x6E ^ 0x51]
+        monitor.acceptedSeeds = [SimulatedMonitor.specificationSeed]
         let channel = Self.channel(monitor)
         #expect(channel.probe().working == DDCProfile(framing: .specification, readOffset: 0x00))
         #expect(channel.getVCP(0x10).value?.current == 50)
@@ -107,7 +109,7 @@ struct DDCChannelTests {
 
     @Test func probeFindsTheReplyOffset() {
         let monitor = SimulatedMonitor()
-        monitor.acceptedSeeds = [0x6E ^ 0x51]
+        monitor.acceptedSeeds = [SimulatedMonitor.specificationSeed]
         monitor.replyOffset = 0x51
         let channel = Self.channel(monitor)
         let result = channel.probe()
