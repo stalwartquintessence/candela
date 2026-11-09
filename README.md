@@ -29,6 +29,10 @@
 - **`candelactl`**, a command line tool for scripting and diagnostics.
 - Remembers settings per monitor. No network access, no analytics.
 
+<p align="center">
+  <img src="docs/images/display-info.png" width="460" alt="The Display Info page for an HP Z27, with a Back button in the footer">
+</p>
+
 ## Compatibility
 
 | Connection on an Apple Silicon Mac | What works |
