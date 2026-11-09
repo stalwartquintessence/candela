@@ -33,7 +33,7 @@ public enum MCCS {
     public static let powerMode: UInt8 = 0xD6
     public static let pictureMode: UInt8 = 0xDC
 
-    /// Sliders shown in the menu below Brightness, in order. Each appears only when the monitor
+    /// Sliders shown below Brightness, in order. Each appears only when the monitor
     /// reports it (volume only on monitors with speakers).
     public static let menuSliders: [UInt8] = [contrast, saturation, volume]
     /// The monitor's own preset modes, shown as pickers.

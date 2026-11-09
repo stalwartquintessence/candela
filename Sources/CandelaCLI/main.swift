@@ -1,4 +1,4 @@
-// candelactl: command line access to the same engine the menu bar app uses.
+// candelactl: command line access to the same engine the app uses.
 // Useful for diagnostics (attach `candelactl probe -v` output to bug reports) and scripting.
 
 import Foundation

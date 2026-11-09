@@ -1,9 +1,9 @@
 import Testing
 @testable import MonitorCore
 
-/// The agreed menu scope: Brightness always; Contrast, Saturation, Volume, Picture Mode and Color
+/// The agreed scope: Brightness always; Contrast, Saturation, Volume, Picture Mode and Color
 /// Preset only when the monitor reports them; never input source, sharpness or color gains.
-@Suite("Menu controls")
+@Suite("Display controls")
 struct ControlPlanTests {
     static let working = DDCStatus.working(profile: "test")
     static let silent = DDCStatus.noReply(advice: "advice")

@@ -1,6 +1,6 @@
-// Which controls the menu offers for one display, and how its brightness is driven.
+// Which controls Candela offers for one display, and how its brightness is driven.
 //
-// This is the agreed menu scope in one place: Brightness is always there; the Contrast,
+// This is the agreed scope in one place: Brightness is always there; the Contrast,
 // Saturation and Volume sliders and the Picture Mode and Color Preset pickers appear only when the
 // monitor reports them. Nothing else (input source, sharpness, color gains) is ever offered.
 // Kept free of AppKit so the rules are unit tested; changing them means changing their tests.
@@ -15,9 +15,9 @@ public struct ControlPlan: Equatable, Sendable {
     public let status: DDCStatus
     /// True when brightness goes to the monitor over DDC/CI, false when it dims the picture.
     public let usesHardwareBrightness: Bool
-    /// Sliders shown below Brightness, in menu order.
+    /// Sliders shown below Brightness, in display order.
     public let sliders: [UInt8]
-    /// Pickers for the monitor's own preset modes, in menu order.
+    /// Pickers for the monitor's own preset modes, in display order.
     public let pickers: [Picker]
     /// The advanced "send DDC/CI without replies" option applies only to a channel that never answers.
     public let canSendWithoutReplies: Bool
@@ -61,7 +61,7 @@ public struct ControlPlan: Equatable, Sendable {
         up == "DP" && down == "HDMI"
     }
 
-    /// Up to two short lines under the display name in the menu. The full explanation is
+    /// Up to two short lines under the display name in the window. The full explanation is
     /// `status.advice`, shown as a tooltip and in Display Info.
     public var statusLine: String {
         if case .probing = status { return "Checking the monitor..." }

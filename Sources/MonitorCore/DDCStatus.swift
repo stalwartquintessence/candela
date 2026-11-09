@@ -15,7 +15,7 @@ public enum DDCStatus: Equatable, Sendable {
         return false
     }
 
-    /// One line for menus and reports.
+    /// One line for the window and reports.
     public var summary: String {
         switch self {
         case .unknown: return "Not checked yet"

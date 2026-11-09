@@ -101,7 +101,7 @@ final class DisplayController: ObservableObject, Identifiable {
         }
     }
 
-    /// What the menu offers and how brightness is driven, given the current state.
+    /// What the window offers and how brightness is driven, given the current state.
     var plan: ControlPlan {
         let transport = display.avService
         return ControlPlan(hasChannel: channel != nil, status: status, sendWithoutReplies: settings.sendWithoutReplies,

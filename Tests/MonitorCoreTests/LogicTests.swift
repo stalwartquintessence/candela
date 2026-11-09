@@ -188,7 +188,7 @@ struct DDCStatusTests {
     }
 }
 
-@Suite("Menu feature set")
+@Suite("Feature set")
 struct MenuFeatureTests {
     @Test func newFeatureNames() {
         #expect(MCCS.name(of: MCCS.saturation) == "Saturation")

@@ -138,7 +138,7 @@ public final class DDCChannel {
     }
 
     /// The capabilities string plus the current value of every readable feature it lists (or of
-    /// the menu features when the display sends no capabilities). Used by the app and `candelactl info`.
+    /// the features Candela shows when the display sends no capabilities). Used by the app and `candelactl info`.
     public func readCapabilitiesAndValues() -> (capabilities: Capabilities?, values: [UInt8: VCPValue]) {
         let capabilities = readCapabilities()
         let codes = capabilities?.vcpCodes.filter { code in
