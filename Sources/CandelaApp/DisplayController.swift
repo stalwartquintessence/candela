@@ -1,3 +1,4 @@
+import Combine
 import CoreGraphics
 import Foundation
 import MonitorCore
@@ -34,17 +35,20 @@ struct DisplaySettings {
 
 /// Owns everything about one external display: DDC state, software dimming and saved settings.
 /// All public members are main-thread only; DDC I/O runs on `DisplayController.ddcQueue`.
-final class DisplayController {
+/// Published state drives the Candela window.
+final class DisplayController: ObservableObject, Identifiable {
     /// One queue for all displays so I2C traffic is never interleaved.
     static let ddcQueue = DispatchQueue(label: "candela.ddc", qos: .userInitiated)
 
     private(set) var display: ExternalDisplay
-    var name: String
-    private(set) var status: DDCStatus = .unknown
+    @Published private(set) var name: String
+    @Published private(set) var status: DDCStatus = .unknown
     private(set) var profile: DDCProfile?
-    private(set) var capabilities: Capabilities?
+    @Published private(set) var capabilities: Capabilities?
     /// Last known values, read from the display or written by us.
-    private(set) var values: [UInt8: VCPValue] = [:]
+    @Published private(set) var values: [UInt8: VCPValue] = [:]
+    /// Brightness used when dimming in software, saved per display.
+    @Published private(set) var softwareBrightness: Double = 100
 
     private var channel: DDCChannel?
     private let gamma: GammaDimmer
@@ -62,6 +66,7 @@ final class DisplayController {
         self.name = name
         self.gamma = gamma
         settings = DisplaySettings(key: display.settingsKey)
+        softwareBrightness = settings.softwareBrightness
         channel = Self.makeChannel(for: display, profile: nil)
         if channel == nil { status = .noService }
     }
@@ -88,6 +93,7 @@ final class DisplayController {
     var sendWithoutReplies: Bool {
         get { settings.sendWithoutReplies }
         set {
+            objectWillChange.send()
             settings.sendWithoutReplies = newValue
             if newValue { values = storedValues().merging(values) { _, current in current } }
             applySoftwareDimming()
@@ -106,7 +112,7 @@ final class DisplayController {
 
     /// Brightness in percent for whichever method is active.
     var brightness: Double {
-        plan.usesHardwareBrightness ? percent(of: MCCS.brightness) : settings.softwareBrightness
+        plan.usesHardwareBrightness ? percent(of: MCCS.brightness) : softwareBrightness
     }
 
     func percent(of code: UInt8) -> Double {
@@ -130,6 +136,7 @@ final class DisplayController {
             gamma.restore(displayID)
             set(code: MCCS.brightness, percent: p)
         } else {
+            softwareBrightness = p
             settings.softwareBrightness = p
             gamma.setBrightness(p, for: displayID)
         }
@@ -171,7 +178,7 @@ final class DisplayController {
         if plan.usesHardwareBrightness {
             gamma.restore(displayID)
         } else {
-            gamma.setBrightness(settings.softwareBrightness, for: displayID)
+            gamma.setBrightness(softwareBrightness, for: displayID)
         }
     }
 

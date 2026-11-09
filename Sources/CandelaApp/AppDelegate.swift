@@ -10,41 +10,33 @@ extension NSScreen {
     }
 }
 
-/// Identifies one menu choice for a picker (Picture Mode, Color Preset).
-private final class PickerChoice: NSObject {
-    let controller: DisplayController
-    let code: UInt8
-    let value: UInt16
-    init(controller: DisplayController, code: UInt8, value: UInt16) {
-        self.controller = controller
-        self.code = code
-        self.value = value
-    }
-}
-
-final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
+/// Candela runs in the background without a Dock or menu bar icon. Its controls live in one
+/// window, shown when the user opens Candela (and again whenever they reopen it), but not when
+/// macOS starts it at login.
+final class AppDelegate: NSObject, NSApplicationDelegate {
     private let gamma = GammaDimmer()
     private let hud = HUD()
     private let keyTap = MediaKeyTap()
-    private var statusItem: NSStatusItem!
-    private var controllers: [DisplayController] = []
+    private let model = AppModel()
+    private var controlsWindow: ControlsWindowController?
     private var infoWindows: [ObjectIdentifier: InfoWindowController] = [:]
     private var accessibilityTimer: Timer?
     private var lastTrusted: Bool?
     private var pendingReconfigure: DispatchWorkItem?
 
+    private var controllers: [DisplayController] {
+        get { model.controllers }
+        set { model.controllers = newValue }
+    }
+
     // MARK: Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        let startedAtLogin = Self.launchedAsLoginItem
+
         // Start from the user's ColorSync gamma in case another tool left a display dimmed.
         gamma.restoreAll()
-
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "sun.max", accessibilityDescription: "Candela")
-        statusItem.button?.toolTip = "Candela"
-        let menu = NSMenu()
-        menu.delegate = self
-        statusItem.menu = menu
+        NSApp.mainMenu = Self.makeMainMenu()
 
         NotificationCenter.default.addObserver(self, selector: #selector(screensChanged),
                                                name: NSApplication.didChangeScreenParametersNotification, object: nil)
@@ -58,11 +50,68 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self?.handleKey(key, fine: fine, isDown: isDown) ?? false
         }
         startKeyTap()
-        Log.app("Candela \(AppVersion.string) started with \(controllers.count) external display(s)")
+        refreshSettings()
+        if !startedAtLogin { showControls() }
+        Log.app("Candela \(AppVersion.string) started\(startedAtLogin ? " at login" : "") with \(controllers.count) external display(s)")
+    }
+
+    /// Opening Candela while it is already running shows its window.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        showControls()
+        return false
+    }
+
+    func applicationDidBecomeActive(_ notification: Notification) {
+        // Launch at Login and the Accessibility permission can change in System Settings.
+        refreshSettings()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         gamma.restoreAll()
+    }
+
+    /// True when macOS opened Candela as a login item, so it starts quietly in the background.
+    private static var launchedAsLoginItem: Bool {
+        guard let event = NSAppleEventManager.shared().currentAppleEvent,
+              event.eventID == AEEventID(kAEOpenApplication) else { return false }
+        return event.paramDescriptor(forKeyword: AEKeyword(keyAEPropData))?.enumCodeValue == OSType(keyAELaunchedAsLogInItem)
+    }
+
+    /// The menu bar stays hidden for a background app, but its key equivalents still work:
+    /// Command-W closes a window and Command-Q quits.
+    private static func makeMainMenu() -> NSMenu {
+        let appMenu = NSMenu()
+        appMenu.addItem(withTitle: "Quit Candela", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let windowMenu = NSMenu(title: "Window")
+        windowMenu.addItem(withTitle: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+
+        let main = NSMenu()
+        for submenu in [appMenu, windowMenu] {
+            let item = NSMenuItem()
+            item.submenu = submenu
+            main.addItem(item)
+        }
+        return main
+    }
+
+    // MARK: Window
+
+    private func showControls() {
+        if controlsWindow == nil {
+            controlsWindow = ControlsWindowController(model: model, actions: ControlsActions(
+                showInfo: { [weak self] controller in self?.showInfo(for: controller) },
+                setLaunchAtLogin: { [weak self] on in self?.setLaunchAtLogin(on) },
+                enableBrightnessKeys: { [weak self] in self?.openAccessibilitySettings() },
+                redetect: { [weak self] in self?.redetect() },
+                about: { [weak self] in self?.showAbout() }))
+        }
+        refreshSettings()
+        controlsWindow?.present()
+    }
+
+    private func refreshSettings() {
+        model.launchAtLogin = SMAppService.mainApp.status == .enabled
+        model.brightnessKeysEnabled = AXIsProcessTrusted()
     }
 
     // MARK: Displays
@@ -135,11 +184,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         controllers.forEach { $0.applySoftwareDimming() }
     }
 
+    private func redetect() {
+        controllers.forEach { gamma.restore($0.displayID) }
+        controllers.removeAll()
+        infoWindows.values.forEach { $0.close() }
+        infoWindows.removeAll()
+        refreshDisplays()
+    }
+
+    private func showInfo(for controller: DisplayController) {
+        let key = ObjectIdentifier(controller)
+        let window = infoWindows[key] ?? InfoWindowController(controller: controller)
+        infoWindows[key] = window
+        window.present()
+    }
+
     // MARK: Brightness keys
 
     /// Watches for the Accessibility permission and starts the key tap once it is granted.
     /// macOS is asked to show its permission dialog only once ever (first launch); after that the
-    /// menu offers "Enable Brightness Keys", so relaunching never nags.
+    /// window offers a button for it, so relaunching never nags.
     private func startKeyTap() {
         let askedKey = "didRequestAccessibilityOnce"
         if !AXIsProcessTrusted(), !UserDefaults.standard.bool(forKey: askedKey) {
@@ -152,6 +216,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             if trusted != self.lastTrusted {
                 Log.app("Accessibility permission: \(trusted ? "granted" : "not granted")")
                 self.lastTrusted = trusted
+                self.model.brightnessKeysEnabled = trusted
             }
             if trusted, self.keyTap.start() {
                 Log.app("Brightness key tap started")
@@ -176,135 +241,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return true
     }
 
-    // MARK: Menu
-
-    func menuNeedsUpdate(_ menu: NSMenu) {
-        menu.removeAllItems()
-
-        if controllers.isEmpty {
-            let item = NSMenuItem(title: "No external displays connected", action: nil, keyEquivalent: "")
-            item.isEnabled = false
-            menu.addItem(item)
-        }
-
-        for (index, controller) in controllers.enumerated() {
-            if index > 0 { menu.addItem(.separator()) }
-            addControls(for: controller, to: menu)
-        }
-
-        menu.addItem(.separator())
-        menu.addItem(actionItem("Re-detect Displays", #selector(redetect)))
-        if !AXIsProcessTrusted() {
-            menu.addItem(actionItem("Enable Brightness Keys (Accessibility)...", #selector(openAccessibilitySettings)))
-        }
-        let login = actionItem("Launch at Login", #selector(toggleLaunchAtLogin))
-        login.state = SMAppService.mainApp.status == .enabled ? .on : .off
-        menu.addItem(login)
-        menu.addItem(actionItem("About Candela", #selector(showAbout)))
-        menu.addItem(NSMenuItem(title: "Quit Candela", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
-    }
-
-    private func addControls(for c: DisplayController, to menu: NSMenu) {
-        let plan = c.plan
-        menu.addItem(viewItem(HeaderRow(title: c.name, status: plan.statusLine, tooltip: c.status.advice)))
-        menu.addItem(viewItem(SliderRow(title: "Brightness", symbol: "sun.max", value: c.brightness) { [weak c] value in
-            c?.setBrightness(value)
-        }))
-        for code in plan.sliders {
-            menu.addItem(viewItem(SliderRow(title: MCCS.name(of: code), symbol: Self.symbol(for: code), value: c.percent(of: code)) { [weak c] value in
-                c?.set(code: code, percent: value)
-            }))
-        }
-
-        // The monitor's own preset modes, exactly as it lists them.
-        for picker in plan.pickers {
-            menu.addItem(pickerMenu(picker, controller: c))
-        }
-
-        let info = actionItem("Display Info...", #selector(showInfo(_:)))
-        info.representedObject = c
-        menu.addItem(info)
-    }
-
-    private func pickerMenu(_ picker: ControlPlan.Picker, controller: DisplayController) -> NSMenuItem {
-        let submenu = NSMenu()
-        for value in picker.values {
-            submenu.addItem(choiceItem(MCCS.valueName(code: picker.code, value: value), code: picker.code, value: value,
-                                       controller: controller))
-        }
-        let item = NSMenuItem(title: MCCS.name(of: picker.code), action: nil, keyEquivalent: "")
-        item.submenu = submenu
-        return item
-    }
-
-    private func choiceItem(_ title: String, code: UInt8, value: UInt16, controller: DisplayController) -> NSMenuItem {
-        let item = actionItem(title, #selector(choose(_:)))
-        item.representedObject = PickerChoice(controller: controller, code: code, value: value)
-        item.state = MCCS.isSameChoice(controller.currentValue(of: code), value) ? .on : .off
-        return item
-    }
-
-    private func actionItem(_ title: String, _ action: Selector) -> NSMenuItem {
-        let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
-        item.target = self
-        return item
-    }
-
-    private func viewItem(_ view: NSView) -> NSMenuItem {
-        let item = NSMenuItem()
-        item.view = view
-        return item
-    }
-
-    private static func symbol(for code: UInt8) -> String {
-        switch code {
-        case MCCS.contrast: return "circle.lefthalf.filled"
-        case MCCS.saturation: return "drop.halffull"
-        case MCCS.volume: return "speaker.wave.2"
-        default: return "slider.horizontal.3"
-        }
-    }
-
-    // MARK: Menu actions
-
-    @objc private func choose(_ sender: NSMenuItem) {
-        guard let choice = sender.representedObject as? PickerChoice else { return }
-        choice.controller.set(code: choice.code, value: choice.value)
-    }
-
-    @objc private func showInfo(_ sender: NSMenuItem) {
-        guard let controller = sender.representedObject as? DisplayController else { return }
-        let key = ObjectIdentifier(controller)
-        let window = infoWindows[key] ?? InfoWindowController(controller: controller)
-        infoWindows[key] = window
-        window.present()
-    }
-
-    @objc private func redetect() {
-        controllers.forEach { gamma.restore($0.displayID) }
-        controllers.removeAll()
-        infoWindows.values.forEach { $0.close() }
-        infoWindows.removeAll()
-        refreshDisplays()
-    }
-
     /// Shows macOS's own permission dialog, which also adds Candela to the Accessibility list.
     private func requestAccessibility() {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         _ = AXIsProcessTrustedWithOptions(options)
     }
 
-    @objc private func openAccessibilitySettings() {
+    private func openAccessibilitySettings() {
         requestAccessibility()
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
             NSWorkspace.shared.open(url)
         }
     }
 
-    @objc private func toggleLaunchAtLogin() {
+    // MARK: Settings
+
+    private func setLaunchAtLogin(_ on: Bool) {
         let service = SMAppService.mainApp
+        defer { refreshSettings() }
         do {
-            if service.status == .enabled { try service.unregister() } else { try service.register() }
+            if on { try service.register() } else { try service.unregister() }
         } catch {
             Log.error("Launch at login change failed: \(error.localizedDescription)")
             let alert = NSAlert()
@@ -320,7 +276,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    @objc private func showAbout() {
+    private func showAbout() {
         NSApp.activate(ignoringOtherApps: true)
         let credits = NSAttributedString(
             string: "Brightness, contrast, saturation, picture modes and volume for external displays.\n\nDDC/CI timing and display matching adapted from MonitorControl (MIT License).",
