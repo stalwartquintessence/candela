@@ -103,8 +103,9 @@ Exit code 3 means the display did not answer DDC/CI.
 
 ## Build from source
 
-Requirements: an Apple Silicon Mac with macOS 13 or later, and either Xcode 16 or the free
-Command Line Tools (`xcode-select --install`). No other dependencies.
+Requirements: an Apple Silicon Mac with either Xcode 26 or the free Command Line Tools for
+Xcode 26 (`xcode-select --install`), which need macOS 15.6 or later. The app you build still
+runs on macOS 13 or later. No other dependencies.
 
 ```sh
 ./scripts/test.sh        # unit tests

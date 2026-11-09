@@ -16,8 +16,9 @@ Say whether `candelactl set brightness 20` visibly changes the display. Add what
 
 ## Development setup
 
-- Apple Silicon Mac, macOS 13 or later
-- Xcode 16, or only the Command Line Tools (`xcode-select --install`)
+- Apple Silicon Mac, macOS 15.6 or later (the app itself runs on macOS 13 or later)
+- Xcode 26, or only its Command Line Tools (`xcode-select --install`). The brightness
+  indicator uses `NSGlassEffectView`, which needs the macOS 26 SDK to compile.
 
 ```sh
 ./scripts/test.sh          # run before every commit
