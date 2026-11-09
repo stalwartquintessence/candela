@@ -171,7 +171,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if isDown {
             let level = BrightnessMath.step(from: controller.brightness, up: key == .brightnessUp, fine: fine)
             controller.setBrightness(level)
-            hud.show(level: level, on: screen)
+            hud.show(level: level, name: controller.name, on: screen)
         }
         return true
     }

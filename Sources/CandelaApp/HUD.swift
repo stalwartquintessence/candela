@@ -1,74 +1,122 @@
 import AppKit
 
-private final class SegmentBar: NSView {
+/// A rounded level bar: a faint track with a solid fill from the left.
+private final class LevelBar: NSView {
     var level: Double = 0 { didSet { needsDisplay = true } }
 
     override func draw(_ dirtyRect: NSRect) {
-        let count = 16
-        let gap: CGFloat = 2
-        let width = (bounds.width - gap * CGFloat(count - 1)) / CGFloat(count)
-        let filled = Int((level / 100 * Double(count)).rounded())
-        for i in 0 ..< count {
-            let rect = NSRect(x: CGFloat(i) * (width + gap), y: 0, width: width, height: bounds.height)
-            (i < filled ? NSColor.labelColor : NSColor.labelColor.withAlphaComponent(0.2)).setFill()
-            NSBezierPath(roundedRect: rect, xRadius: 1, yRadius: 1).fill()
-        }
+        let radius = bounds.height / 2
+        NSColor.labelColor.withAlphaComponent(0.18).setFill()
+        NSBezierPath(roundedRect: bounds, xRadius: radius, yRadius: radius).fill()
+        guard level > 0 else { return }
+        let width = max(bounds.height, bounds.width * CGFloat(min(level, 100) / 100))
+        NSColor.labelColor.setFill()
+        NSBezierPath(roundedRect: NSRect(x: 0, y: 0, width: width, height: bounds.height), xRadius: radius, yRadius: radius).fill()
     }
 }
 
-/// A floating overlay similar to the native brightness indicator.
+/// Brightness indicator in the style macOS has used since version 26: a small panel under the
+/// menu bar, at the top right of the display being adjusted. It uses the system's own glass
+/// material where available, so it follows the current look of macOS, and a blurred panel on
+/// earlier versions.
 final class HUD {
+    private enum Metrics {
+        static let size = NSSize(width: 240, height: 56)
+        static let cornerRadius: CGFloat = 18
+        /// Distance from the right edge of the screen and from the menu bar.
+        static let margin: CGFloat = 8
+        static let inset: CGFloat = 14
+        static let visibleFor: TimeInterval = 1.5
+    }
+
     private let panel: NSPanel
-    private let icon = NSImageView(frame: NSRect(x: 50, y: 60, width: 100, height: 100))
-    private let bar = SegmentBar(frame: NSRect(x: 20, y: 24, width: 160, height: 7))
+    private let title = NSTextField(labelWithString: "")
+    private let bar = LevelBar()
     private var hideTask: DispatchWorkItem?
+    /// Increases with every `show`, so a fade-out that finishes late never hides a newer update.
+    private var generation = 0
 
     init() {
-        let size = NSSize(width: 200, height: 200)
-        panel = NSPanel(contentRect: NSRect(origin: .zero, size: size),
-                        styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        let frame = NSRect(origin: .zero, size: Metrics.size)
+        panel = NSPanel(contentRect: frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         panel.isOpaque = false
         panel.backgroundColor = .clear
-        panel.hasShadow = false
         panel.level = .screenSaver
         panel.ignoresMouseEvents = true
         panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
 
-        let blur = NSVisualEffectView(frame: NSRect(origin: .zero, size: size))
-        blur.material = .hudWindow
-        blur.blendingMode = .behindWindow
-        blur.state = .active
-        blur.wantsLayer = true
-        blur.layer?.cornerRadius = 22
-        blur.layer?.masksToBounds = true
+        let content = NSView(frame: frame)
+        let width = Metrics.size.width - 2 * Metrics.inset
 
+        title.font = .systemFont(ofSize: 12, weight: .semibold)
+        title.textColor = .labelColor
+        title.lineBreakMode = .byTruncatingTail
+        title.frame = NSRect(x: Metrics.inset, y: 31, width: width, height: 16)
+
+        let icon = NSImageView(frame: NSRect(x: Metrics.inset - 1, y: 9, width: 18, height: 18))
         icon.image = NSImage(systemSymbolName: "sun.max.fill", accessibilityDescription: nil)
-        icon.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 64, weight: .regular)
+        icon.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
         icon.contentTintColor = .labelColor
 
-        blur.addSubview(icon)
-        blur.addSubview(bar)
-        panel.contentView = blur
+        bar.frame = NSRect(x: Metrics.inset + 26, y: 14, width: width - 26, height: 8)
+
+        [title, icon, bar].forEach(content.addSubview)
+
+        if #available(macOS 26.0, *) {
+            let glass = NSGlassEffectView(frame: frame)
+            glass.cornerRadius = Metrics.cornerRadius
+            glass.contentView = content
+            panel.hasShadow = false // the glass draws its own edge
+            panel.contentView = glass
+        } else {
+            let blur = NSVisualEffectView(frame: frame)
+            blur.material = .hudWindow
+            blur.blendingMode = .behindWindow
+            blur.state = .active
+            blur.wantsLayer = true
+            blur.layer?.cornerRadius = Metrics.cornerRadius
+            blur.layer?.masksToBounds = true
+            blur.addSubview(content)
+            panel.hasShadow = true
+            panel.contentView = blur
+        }
     }
 
-    func show(level: Double, on screen: NSScreen) {
+    /// Shows `level` (0 to 100) for the display called `name`, on `screen`.
+    func show(level: Double, name: String, on screen: NSScreen) {
+        title.stringValue = name
         bar.level = level
-        let frame = screen.frame
-        panel.setFrameOrigin(NSPoint(x: frame.midX - panel.frame.width / 2, y: frame.minY + 140))
+        let area = screen.visibleFrame
+        panel.setFrameOrigin(NSPoint(x: area.maxX - Metrics.size.width - Metrics.margin,
+                                     y: area.maxY - Metrics.size.height - Metrics.margin))
+
+        generation += 1
+        let current = generation
+        if !panel.isVisible {
+            panel.alphaValue = 0
+            panel.orderFrontRegardless()
+        }
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.15
+            panel.animator().alphaValue = 1
+        }
 
         hideTask?.cancel()
-        panel.alphaValue = 1
-        panel.orderFrontRegardless()
-
         let task = DispatchWorkItem { [weak self] in
+            guard let self else { return }
             NSAnimationContext.runAnimationGroup({ context in
                 context.duration = 0.3
-                self?.panel.animator().alphaValue = 0
-            }, completionHandler: {
-                if self?.panel.alphaValue == 0 { self?.panel.orderOut(nil) }
+                self.panel.animator().alphaValue = 0
+            }, completionHandler: { [weak self] in
+                guard let self, self.generation == current else { return }
+                self.panel.orderOut(nil)
             })
         }
         hideTask = task
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2, execute: task)
+        DispatchQueue.main.asyncAfter(deadline: .now() + Metrics.visibleFor, execute: task)
+
+        NSAccessibility.post(element: NSApp as Any, notification: .announcementRequested,
+                             userInfo: [.announcement: "\(name) brightness \(Int(level.rounded())) percent",
+                                        .priority: NSAccessibilityPriorityLevel.medium.rawValue])
     }
 }
