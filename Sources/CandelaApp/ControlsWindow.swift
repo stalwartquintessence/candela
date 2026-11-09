@@ -185,10 +185,12 @@ final class ControlsWindowController: NSWindowController, NSWindowDelegate {
         window.title = "Candela"
         window.isReleasedWhenClosed = false
         window.contentView = NSHostingView(rootView: ControlsView(model: model, actions: actions))
-        // Only the close button: minimizing or zooming a small utility window adds nothing.
-        // The window can still be resized from its edges.
-        window.standardWindowButton(.miniaturizeButton)?.isHidden = true
-        window.standardWindowButton(.zoomButton)?.isHidden = true
+        // Only the close button works: minimizing or zooming a small utility window adds nothing,
+        // so those buttons stay visible but disabled, like in other single-window utilities. The
+        // window is not miniaturizable, which already disables minimize; zoom and full screen are
+        // switched off explicitly. The window can still be resized from its edges.
+        window.collectionBehavior.insert(.fullScreenNone)
+        window.standardWindowButton(.zoomButton)?.isEnabled = false
         window.center()
         window.setFrameAutosaveName("Candela")
         super.init(window: window)
