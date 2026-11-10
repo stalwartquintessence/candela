@@ -44,7 +44,7 @@ final class UpdateChecker {
 
     /// Check for Updates: always shows the result.
     func checkNow() {
-        fetch { [weak self] result in self?.present(result) }
+        fetch(automatic: false) { [weak self] result in self?.present(result) }
     }
 
     // MARK: Automatic checks
@@ -66,7 +66,7 @@ final class UpdateChecker {
     private func checkIfDue() {
         let lastCheck = defaults.object(forKey: Key.lastCheck) as? Date
         guard isAutomatic, UpdateCheck.isDue(lastCheck: lastCheck, now: Date()) else { return }
-        fetch { [weak self] result in self?.handleAutomatic(result) }
+        fetch(automatic: true) { [weak self] result in self?.handleAutomatic(result) }
     }
 
     /// Automatic checks stay quiet unless there is a version the user has not been told about.
@@ -78,7 +78,7 @@ final class UpdateChecker {
 
     // MARK: Request
 
-    private func fetch(_ completion: @escaping (UpdateCheckResult) -> Void) {
+    private func fetch(automatic: Bool, _ completion: @escaping (UpdateCheckResult) -> Void) {
         guard !busy else { return }
         busy = true
         var request = URLRequest(url: UpdateCheck.latestReleaseURL)
@@ -94,7 +94,7 @@ final class UpdateChecker {
                 result = .failed(.offline(error?.localizedDescription ?? "no reply"))
             }
             DispatchQueue.main.async {
-                Log.app("update check: \(result)")
+                Log.app("update check (\(automatic ? "automatic" : "manual")): \(result)")
                 guard let self else { return }
                 self.busy = false
                 // Any answer from GitHub counts as a check; being offline does not, so the next
