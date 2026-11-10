@@ -51,6 +51,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         startKeyTap()
         updates.onBusyChange = { [weak self] busy in self?.model.isCheckingForUpdates = busy }
+        updates.start()
         refreshSettings()
         if !startedAtLogin { showControls() }
         Log.app("Candela \(AppVersion.string) started\(startedAtLogin ? " at login" : "") with \(controllers.count) external display(s)")
@@ -101,6 +102,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if controlsWindow == nil {
             controlsWindow = ControlsWindowController(model: model, actions: ControlsActions(
                 setLaunchAtLogin: { [weak self] on in self?.setLaunchAtLogin(on) },
+                setAutomaticUpdateChecks: { [weak self] on in
+                    self?.updates.setAutomatic(on)
+                    self?.model.checksForUpdatesAutomatically = on
+                },
                 enableBrightnessKeys: { [weak self] in self?.openAccessibilitySettings() },
                 redetect: { [weak self] in self?.redetect() },
                 checkForUpdates: { [weak self] in self?.updates.checkNow() },
@@ -114,6 +119,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func refreshSettings() {
         model.launchAtLogin = SMAppService.mainApp.status == .enabled
+        model.checksForUpdatesAutomatically = updates.isAutomatic
         model.brightnessKeysEnabled = AXIsProcessTrusted()
     }
 

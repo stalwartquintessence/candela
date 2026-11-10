@@ -128,6 +128,22 @@ public enum UpdateCheck {
         URL(string: "https://github.com/\(repository)/releases/tag/v\(version)")!
     }
 
+    /// How often the automatic check (off by default) asks GitHub.
+    public static let interval: TimeInterval = 24 * 60 * 60
+
+    /// Whether the automatic check should ask GitHub now.
+    public static func isDue(lastCheck: Date?, now: Date) -> Bool {
+        guard let lastCheck else { return true }
+        // A last check "in the future" means the clock was set back; do not wait for it.
+        return lastCheck > now || now.timeIntervalSince(lastCheck) >= interval
+    }
+
+    /// Automatic checks tell the user about each new version once, not every day.
+    public static func shouldAnnounce(_ version: SemanticVersion, lastAnnounced: String?) -> Bool {
+        guard let lastAnnounced, let announced = SemanticVersion(lastAnnounced) else { return true }
+        return version > announced
+    }
+
     /// Turns GitHub's reply into a result.
     public static func result(statusCode: Int, body: Data, current: SemanticVersion = currentVersion) -> UpdateCheckResult {
         switch statusCode {

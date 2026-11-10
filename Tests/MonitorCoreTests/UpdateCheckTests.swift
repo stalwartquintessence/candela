@@ -116,6 +116,26 @@ struct UpdateCheckTests {
         #expect(UpdateCheck.result(statusCode: 500, body: Data(), current: current) == .failed(.unexpectedStatus(500)))
     }
 
+    @Test func automaticCheckRunsOnceADay() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        #expect(UpdateCheck.isDue(lastCheck: nil, now: now))
+        #expect(!UpdateCheck.isDue(lastCheck: now, now: now))
+        #expect(!UpdateCheck.isDue(lastCheck: now.addingTimeInterval(-23 * 3600), now: now))
+        #expect(UpdateCheck.isDue(lastCheck: now.addingTimeInterval(-24 * 3600), now: now))
+        #expect(UpdateCheck.isDue(lastCheck: now.addingTimeInterval(-30 * 24 * 3600), now: now))
+        // The clock was set back.
+        #expect(UpdateCheck.isDue(lastCheck: now.addingTimeInterval(3600), now: now))
+    }
+
+    @Test func eachVersionIsAnnouncedOnce() {
+        let next = SemanticVersion(major: 0, minor: 3, patch: 0)
+        #expect(UpdateCheck.shouldAnnounce(next, lastAnnounced: nil))
+        #expect(UpdateCheck.shouldAnnounce(next, lastAnnounced: "0.2.1"))
+        #expect(!UpdateCheck.shouldAnnounce(next, lastAnnounced: "0.3.0"))
+        #expect(!UpdateCheck.shouldAnnounce(next, lastAnnounced: "0.4.0"))
+        #expect(UpdateCheck.shouldAnnounce(next, lastAnnounced: "garbage"))
+    }
+
     @Test func requestsGoToThisRepository() {
         #expect(UpdateCheck.latestReleaseURL.absoluteString
             == "https://api.github.com/repos/stalwartquintessence/candela/releases/latest")
