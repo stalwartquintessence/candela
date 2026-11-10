@@ -51,12 +51,20 @@ Intel Macs are not supported: they use a different I2C interface.
 
 ## Install
 
-1. Download `Candela-x.y.z.dmg` from the [Releases](../../releases) page.
-2. Open it and drag **Candela** to **Applications**.
-3. Open Candela. Because it is free and not notarized by Apple, macOS blocks the first launch:
+1. Download `Candela-x.y.z.dmg` from the [Releases](../../releases) page, open it and drag
+   **Candela** to **Applications**. Or install it with [Homebrew](https://brew.sh), which also
+   puts `candelactl` on your path:
+
+   ```sh
+   brew tap stalwartquintessence/tap
+   brew trust --tap stalwartquintessence/tap   # Homebrew asks before loading a third-party tap
+   brew install --cask stalwartquintessence/tap/candela
+   ```
+
+2. Open Candela. Because it is free and not notarized by Apple, macOS blocks the first launch:
    open **System Settings > Privacy & Security**, scroll down and click **Open Anyway**.
    (Alternatively: `xattr -dr com.apple.quarantine /Applications/Candela.app`)
-4. To use the brightness keys, allow Candela in
+3. To use the brightness keys, allow Candela in
    **System Settings > Privacy & Security > Accessibility**. macOS asks once on first launch;
    later, use **Allow in System Settings** in Candela's window.
 

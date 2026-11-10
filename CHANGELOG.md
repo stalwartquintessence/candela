@@ -12,6 +12,8 @@ All notable changes are documented here. The format follows
   brightness key permission kept and no Open Anyway prompt. **Check for Updates Automatically**
   looks once a day; it is off by default. Updates use Sparkle 2.10.1 and are signed with an
   Ed25519 key. The README describes exactly what is sent.
+- Homebrew: `brew install --cask stalwartquintessence/tap/candela`, from a tap that follows new
+  releases on its own. See the README's Install section.
 
 ### Fixed
 - Changing a display's color profile while Candela dims it no longer brings the old profile back

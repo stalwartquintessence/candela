@@ -81,36 +81,34 @@ a version downloaded by hand from the Releases page asks again.
 
 Since 2026-09-01 the official Homebrew cask repository (`homebrew/cask`) only accepts apps
 that pass Gatekeeper, which needs Apple's paid notarization, and Homebrew removed the
-`--no-quarantine` option. Your own tap still works.
+`--no-quarantine` option. A tap of your own still works, and it is just another free GitHub
+repository.
 
-A tap is just another free GitHub repository. Create `github.com/<your-username>/homebrew-tap`
-with `Casks/candela.rb`:
+Candela's is [stalwartquintessence/homebrew-tap](https://github.com/stalwartquintessence/homebrew-tap):
 
-```ruby
-cask "candela" do
-  version "0.1.0"
-  sha256 "<the .dmg line from SHA256SUMS.txt>"
+- `Casks/candela.rb` installs the app from the release's disk image and links `candelactl`.
+- **Tests** runs `brew style`, `brew audit --strict --online` and a real install on every change.
+- **Update** runs daily. When a new Candela release appears, it sets the cask's version and
+  checksum (hashed from the download and checked against `SHA256SUMS.txt`), commits, and runs
+  the tests. Nothing in this repository has to change for that.
 
-  url "https://github.com/<your-username>/candela/releases/download/v#{version}/Candela-#{version}.dmg"
-  name "Candela"
-  desc "Brightness, contrast and picture mode control for external displays"
-  homepage "https://github.com/<your-username>/candela"
+Homebrew 7 loads casks from a third-party tap only after the user trusts it, so installing takes
+three commands:
 
-  depends_on arch: :arm64
-  depends_on macos: ">= :ventura"
-
-  auto_updates true # Candela updates itself; brew upgrade leaves it alone
-
-  app "Candela.app"
-  binary "#{appdir}/Candela.app/Contents/MacOS/candelactl"
-
-  zap trash: "~/Library/Preferences/<your bundle id>.plist"
-end
+```sh
+brew tap stalwartquintessence/tap
+brew trust --tap stalwartquintessence/tap
+brew install --cask stalwartquintessence/tap/candela
 ```
 
-Users then install with `brew install --cask <your-username>/tap/candela` and update with
-`brew upgrade`. macOS still blocks the first launch after each install or upgrade, exactly as
-for a download (see section 3).
+macOS still blocks the first launch of a Homebrew install, exactly as for a download (see
+section 3).
+
+Once a release with in-app updates (0.2.0 or later) is out, add `auto_updates true` to the cask:
+Candela then updates itself, and `brew upgrade` leaves it alone instead of replacing it.
+
+For a fork, copy the tap repository and replace `stalwartquintessence/candela` and the bundle ID
+in the cask and both workflows.
 
 ## 5. Optional: a website
 
