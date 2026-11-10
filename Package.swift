@@ -11,6 +11,10 @@ let package = Package(
         .executable(name: "candelactl", targets: ["CandelaCLI"]),
         .library(name: "MonitorCore", targets: ["MonitorCore"]),
     ],
+    dependencies: [
+        // In-app updates. Pinned exactly: an updater is security sensitive, so upgrades are deliberate.
+        .package(url: "https://github.com/sparkle-project/Sparkle", exact: "2.10.1"),
+    ],
     targets: [
         // Pure logic: DDC/CI packets, MCCS tables, capability strings, EDID, brightness math.
         // No IOKit or AppKit, so everything here is unit tested.
@@ -23,10 +27,10 @@ let package = Package(
             linkerSettings: [.linkedFramework("IOKit"), .linkedFramework("CoreGraphics")]
         ),
 
-        // The menu bar app.
+        // The app.
         .executableTarget(
             name: "CandelaApp",
-            dependencies: ["MonitorCore", "MonitorIO"],
+            dependencies: ["MonitorCore", "MonitorIO", .product(name: "Sparkle", package: "Sparkle")],
             linkerSettings: [
                 .linkedFramework("AppKit"),
                 .linkedFramework("SwiftUI"),

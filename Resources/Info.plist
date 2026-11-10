@@ -33,6 +33,15 @@
     <string>NSApplication</string>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <!-- In-app updates (Sparkle): automatic checks off by default, no system profile sent. -->
+    <key>SUFeedURL</key>
+    <string>__SPARKLE_FEED_URL__</string>
+    <key>SUPublicEDKey</key>
+    <string>__SPARKLE_PUBLIC_KEY__</string>
+    <key>SUEnableAutomaticChecks</key>
+    <false/>
+    <key>SUEnableSystemProfiling</key>
+    <false/>
     <key>NSHumanReadableCopyright</key>
     <string>__COPYRIGHT__</string>
 </dict>

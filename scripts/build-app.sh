@@ -22,14 +22,38 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN/$APP_PRODUCT" "$APP/Contents/MacOS/$APP_NAME"
 cp "$BIN/$CLI_PRODUCT" "$APP/Contents/MacOS/$CLI_NAME"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+# The licenses travel with the app, as Sparkle's bundled components require for binary copies.
+cp LICENSE THIRD_PARTY_NOTICES.md "$APP/Contents/Resources/"
+
+# Sparkle, for in-app updates. Its XPC services are only used by sandboxed apps; Candela is not
+# sandboxed, so they are left out.
+FRAMEWORK="$APP/Contents/Frameworks/Sparkle.framework"
+mkdir -p "$APP/Contents/Frameworks"
+ditto "$BIN/Sparkle.framework" "$FRAMEWORK"
+rm -rf "$FRAMEWORK/Versions/B/XPCServices" "$FRAMEWORK/XPCServices"
+install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/MacOS/$APP_NAME"
+# SwiftPM also records the build machine's toolchain folder as a library search path. Nothing is
+# loaded from there (the Swift libraries come from /usr/lib/swift), so remove it: with library
+# validation off for Sparkle, search paths outside the app and the system should not exist.
+for RPATH in $(otool -l "$APP/Contents/MacOS/$APP_NAME" | awk '$1 == "path" { print $2 }'); do
+    case "$RPATH" in
+        /usr/lib/swift | @loader_path | @executable_path/../Frameworks) ;;
+        *) install_name_tool -delete_rpath "$RPATH" "$APP/Contents/MacOS/$APP_NAME" ;;
+    esac
+done
 
 sed -e "s|__APP_NAME__|$APP_NAME|g" \
     -e "s|__BUNDLE_ID__|$BUNDLE_ID|g" \
     -e "s|__VERSION__|$VERSION|g" \
     -e "s|__BUILD__|$BUILD_NUMBER|g" \
     -e "s|__COPYRIGHT__|$COPYRIGHT|g" \
+    -e "s|__SPARKLE_FEED_URL__|$SPARKLE_FEED_URL|g" \
+    -e "s|__SPARKLE_PUBLIC_KEY__|$SPARKLE_PUBLIC_KEY|g" \
     Resources/Info.plist > "$APP/Contents/Info.plist"
 plutil -lint -s "$APP/Contents/Info.plist"
+if [ -z "$SPARKLE_PUBLIC_KEY" ]; then
+    echo "note: SPARKLE_PUBLIC_KEY is not set, so this build has in-app updates switched off." >&2
+fi
 
 # Identity, in order of preference:
 #   1. CODESIGN_IDENTITY (optionally with CODESIGN_KEYCHAIN)
@@ -57,10 +81,15 @@ if [ -z "$IDENTITY" ]; then
 fi
 
 echo "==> Signing with: $([ "$IDENTITY" = "-" ] && echo ad-hoc || echo "$IDENTITY")"
-# Nested executables first, then the bundle. Hardened runtime, no entitlements needed.
+# Inside out: Sparkle's helpers, the framework, the command line tool, then the bundle.
+# Hardened runtime everywhere. Everything carries the same signature, which is also what lets
+# Sparkle accept an update as coming from the same developer.
 SIGN=(codesign --force --options runtime ${KEYCHAIN_ARGS[@]+"${KEYCHAIN_ARGS[@]}"} --sign "$IDENTITY")
+"${SIGN[@]}" "$FRAMEWORK/Versions/B/Autoupdate"
+"${SIGN[@]}" "$FRAMEWORK/Versions/B/Updater.app"
+"${SIGN[@]}" "$FRAMEWORK"
 "${SIGN[@]}" "$APP/Contents/MacOS/$CLI_NAME"
-"${SIGN[@]}" "$APP"
+"${SIGN[@]}" --entitlements Resources/Candela.entitlements "$APP"
 codesign --verify --strict "$APP"
 echo "    designated requirement: $(codesign -dr - "$APP" 2>&1 | sed -n 's/^designated => //p')"
 
