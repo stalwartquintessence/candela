@@ -6,6 +6,8 @@ All notable changes are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-09
+
 ### Added
 - **Check for Updates...** in the Candela window finds a newer version, shows what changed, and
   installs it from inside the app: download, signature check, replace and relaunch, with the
@@ -23,8 +25,20 @@ All notable changes are documented here. The format follows
 
 ### Changed
 - Releases are signed with a stable self-signed certificate instead of ad-hoc, so macOS keeps
-  the brightness key (Accessibility) permission across updates. Updating from 0.1.0 asks for it
-  once more.
+  the brightness key (Accessibility) permission across updates.
+
+### Upgrading from 0.1.0
+- 0.1.0 cannot update itself, so install 0.2.0 by hand once: download it (or use Homebrew),
+  replace Candela in Applications, click **Open Anyway** on first launch, and allow Candela again
+  in **System Settings > Privacy & Security > Accessibility**. From 0.2.0 on, updates install
+  from inside the app and keep the permission.
+
+### Known limitations
+- The monitor's own controls over DDC/CI (contrast, saturation, picture modes, color presets and
+  volume) are still not verified on real hardware. Reports with `candelactl probe --verbose`
+  output are very welcome (#1).
+- Builds are not notarized: the first launch needs **Open Anyway**. Updates installed from
+  inside Candela do not.
 
 ## [0.1.0] - 2026-11-09
 
