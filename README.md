@@ -105,8 +105,9 @@ means **100% in Candela equals the brightness set in the monitor's own menu**, n
 the full range, set the monitor's brightness to 100 once with its buttons and use Candela to go
 lower. Changing the monitor's picture mode with its buttons also changes that ceiling.
 
-Dimming the picture does not save power and may interact with other tools that change gamma
-(for example f.lux). Quitting Candela, or a crash, always restores normal colors.
+Dimming the picture does not save power. It keeps working when you choose another color profile
+or turn on Night Shift, but may interact with other tools that change gamma (for example f.lux).
+Quitting Candela, or a crash, always restores normal colors.
 
 A few monitors accept DDC/CI commands without ever replying. For those, Display Info has an
 advanced option to send commands anyway. It cannot help when the connection itself blocks
