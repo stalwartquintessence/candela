@@ -32,6 +32,17 @@ security import "$DIR/identity.p12" -k "$KEYCHAIN" -P "$SIGNING_IDENTITY_PASSWOR
 # Let codesign use the key without a keychain access dialog.
 security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
 
+# codesign --keychain still needs the keychain on the user's search list (macOS 26 reports
+# "no identity found" otherwise), so put it first, keeping the existing ones.
+SEARCH_LIST=()
+while IFS= read -r line; do
+    line="${line#"${line%%[![:space:]]*}"}" # trim leading spaces
+    line="${line#\"}"
+    SEARCH_LIST+=("${line%\"}")
+done < <(security list-keychains -d user)
+security list-keychains -d user -s "$KEYCHAIN" ${SEARCH_LIST[@]+"${SEARCH_LIST[@]}"}
+
+security find-identity -p codesigning "$KEYCHAIN"
 if ! security find-identity -p codesigning "$KEYCHAIN" | grep -q "\"$SIGNING_NAME\""; then
     echo "::error::The secret holds no code signing identity named \"$SIGNING_NAME\"."
     exit 1
