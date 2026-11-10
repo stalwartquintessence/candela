@@ -41,10 +41,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let workspace = NSWorkspace.shared.notificationCenter
         workspace.addObserver(self, selector: #selector(didWake), name: NSWorkspace.didWakeNotification, object: nil)
         workspace.addObserver(self, selector: #selector(didWake), name: NSWorkspace.screensDidWakeNotification, object: nil)
-        // A new color profile replaces the display's gamma table, and with it any dimming.
-        DistributedNotificationCenter.default().addObserver(
-            self, selector: #selector(colorProfileChanged),
-            name: Notification.Name(kColorSyncDisplayDeviceProfilesNotification.takeUnretainedValue() as String), object: nil)
 
         refreshDisplays()
 
@@ -175,7 +171,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func screensChanged() {
-        // Reconfiguration sends bursts of notifications; act once things settle.
+        // Reconfiguration sends bursts of notifications; act once things settle. Choosing another
+        // color profile arrives here too: it replaces the display's gamma table, and with it any
+        // dimming, which reapplyDimming() then puts on top of the new profile.
         pendingReconfigure?.cancel()
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
@@ -189,12 +187,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func didWake() {
         // macOS restores ColorSync gamma on wake, which would undo software dimming.
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in self?.reapplyDimming() }
-    }
-
-    @objc private func colorProfileChanged() {
-        Log.app("color profile changed")
-        // Give ColorSync a moment to load the new profile's table, then dim on top of it.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in self?.reapplyDimming() }
     }
 
     /// Dim again after macOS may have replaced the gamma tables. GammaDimmer notices a replaced
