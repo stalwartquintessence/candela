@@ -9,7 +9,8 @@ final class AppModel: ObservableObject {
     @Published var brightnessKeysEnabled = false
     @Published var launchAtLogin = false
     @Published var checksForUpdatesAutomatically = false
-    @Published var isCheckingForUpdates = false
+    /// False while a check runs, and in builds without in-app updates.
+    @Published var canCheckForUpdates = false
     /// The display whose Display Info page is showing, or nil for the main page.
     @Published var infoDisplay: DisplayController?
 
@@ -61,7 +62,8 @@ struct ControlsView: View {
                     Toggle("Launch at Login", isOn: Binding(get: { model.launchAtLogin }, set: actions.setLaunchAtLogin))
                     Toggle("Check for Updates Automatically",
                            isOn: Binding(get: { model.checksForUpdatesAutomatically }, set: actions.setAutomaticUpdateChecks))
-                        .help("Once a day, Candela asks GitHub for the number of its latest version. Nothing else is sent.")
+                        .help("Once a day, Candela reads its update feed on GitHub. Nothing about you or your Mac is sent.")
+                        .disabled(!Updater.isConfigured)
                     LabeledContent("Brightness keys") {
                         if model.brightnessKeysEnabled {
                             Text("On for the display under the pointer")
@@ -83,13 +85,8 @@ struct ControlsView: View {
             HStack {
                 Button("Re-detect Displays", action: actions.redetect)
                 Spacer()
-                if model.isCheckingForUpdates {
-                    ProgressView()
-                        .controlSize(.small)
-                        .accessibilityLabel("Checking for updates")
-                }
                 Button("Check for Updates...", action: actions.checkForUpdates)
-                    .disabled(model.isCheckingForUpdates)
+                    .disabled(!model.canCheckForUpdates)
                 Button("About Candela", action: actions.about)
             }
             .padding(12)

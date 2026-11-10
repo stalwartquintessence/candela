@@ -16,9 +16,19 @@ SIGNING_NAME="$APP_NAME Local Signing"
 SIGNING_DIR="$HOME/Library/Application Support/$APP_NAME Signing"
 SIGNING_KEYCHAIN="$SIGNING_DIR/signing.keychain-db"
 
+# In-app updates (Sparkle). Every GitHub release carries appcast.xml, and this address always
+# serves the newest one. SPARKLE_PUBLIC_KEY is printed by scripts/create-update-key.sh; without
+# it the app is built with in-app updates switched off (for example in forks).
+SPARKLE_FEED_URL="${SPARKLE_FEED_URL:-https://github.com/stalwartquintessence/candela/releases/latest/download/appcast.xml}"
+SPARKLE_PUBLIC_KEY="${SPARKLE_PUBLIC_KEY:-uJ4UuWf35NFqlMg4hW/k3Ni04aQl5EBEXLlFQ/TPOG8=}"
+# Sparkle's command line tools (sign_update, generate_keys), fetched by scripts/sparkle-tools.sh.
+# Keep the version equal to the one pinned in Package.swift.
+SPARKLE_VERSION="2.10.1"
+SPARKLE_TOOLS_SHA256="1a856d2a9edb8e628de88121d7be04cf0e2167f8641650b78fca00b14244cf27"
+
 # The version lives in one place: Sources/MonitorCore/Version.swift (AppVersion.string).
 VERSION=$(sed -n 's/.*static let string = "\(.*\)".*/\1/p' Sources/MonitorCore/Version.swift)
-BUILD_NUMBER=$(git rev-list --count HEAD 2>/dev/null || echo 1)
+BUILD_NUMBER="${BUILD_NUMBER:-$(git rev-list --count HEAD 2>/dev/null || echo 1)}" # override only to test updates
 
 # With only the Command Line Tools installed (no Xcode), SwiftPM's default build system fails to
 # start ("Unknown error parsing property list") and the Swift Testing framework is not on the

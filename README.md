@@ -80,18 +80,23 @@ window.
 
 ### Updates
 
-**Check for Updates...** at the bottom of the window asks GitHub whether a newer version has
-been released. If there is one, **Download** opens its release page; install it like the first
-time, replacing Candela in Applications.
+**Check for Updates...** at the bottom of the window looks for a newer version. If there is one,
+Candela shows what changed and offers **Install Update**: it downloads the update, checks its
+signature, replaces itself and restarts. The brightness key permission carries over.
 
-To be told without asking, turn on **Check for Updates Automatically**. Candela then checks at
-most once a day and tells you about each new version once. It is off by default.
+To hear about updates without asking, turn on **Check for Updates Automatically**. Candela then
+checks at most once a day. It is off by default.
 
-This is the only network request Candela ever makes:
-`GET https://api.github.com/repos/stalwartquintessence/candela/releases/latest`, without
-cookies. Like any web request it shows GitHub your IP address, plus the app's version in the
-`User-Agent` header (`Candela/x.y.z`). Nothing else is sent. If the automatic check is off and
-you never click the button, Candela never goes online.
+Candela reads one small file to find out about updates,
+`https://github.com/stalwartquintessence/candela/releases/latest/download/appcast.xml`, and
+downloads the update from the same GitHub release when you install it. No cookies and no
+information about your Mac are sent. Like any web request, it shows GitHub your IP address and
+the version numbers in the `User-Agent` header (`Candela/x.y.z Sparkle/2.10.1`). If the automatic
+check is off and you never click the button, Candela never goes online.
+
+Every update is signed. Candela installs one only if its signature matches the key built into
+the app and the new version carries the same code signature as the one you have.
+Updates use [Sparkle](https://sparkle-project.org).
 
 ### When the monitor's controls are not reachable
 
@@ -127,7 +132,8 @@ Exit code 3 means the display did not answer DDC/CI.
 
 Requirements: an Apple Silicon Mac with either Xcode 26 or the free Command Line Tools for
 Xcode 26 (`xcode-select --install`), which need macOS 15.6 or later. The app you build still
-runs on macOS 13 or later. No other dependencies.
+runs on macOS 13 or later. The only dependency, [Sparkle](https://sparkle-project.org) for
+updates, is downloaded by SwiftPM at a pinned version.
 
 ```sh
 ./scripts/test.sh        # unit tests

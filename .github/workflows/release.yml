@@ -1,6 +1,7 @@
 name: Release
 
-# Push a tag like v0.1.0 to publish a GitHub Release with the zip, dmg and checksums.
+# Push a tag like v0.1.0 to publish a GitHub Release with the zip, dmg, checksums and the signed
+# update feed (appcast.xml) that installed copies read.
 on:
   push:
     tags: ["v*"]
@@ -36,8 +37,33 @@ jobs:
           SIGNING_IDENTITY_PASSWORD: ${{ secrets.SIGNING_IDENTITY_PASSWORD }}
         run: ./scripts/import-signing-identity.sh --required
 
+      - name: Update key
+        # Installed copies accept only updates signed with the key whose public half the app carries.
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          source scripts/config.sh
+          if [ -z "$SPARKLE_PUBLIC_KEY" ] || [ -z "$SPARKLE_PRIVATE_KEY" ]; then
+            echo "::error::No update key. Run ./scripts/create-update-key.sh once on your Mac and commit scripts/config.sh."
+            exit 1
+          fi
+          printf '%s' "$SPARKLE_PRIVATE_KEY" | swift scripts/check-update-key.swift "$SPARKLE_PUBLIC_KEY"
+
       - name: Build and package
         run: ./scripts/package.sh
+
+      - name: Sign the update and write the update feed
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          source scripts/config.sh
+          ZIP="dist/$APP_NAME-$VERSION.zip"
+          SIGNATURE=$(printf '%s' "$SPARKLE_PRIVATE_KEY" | "$(./scripts/sparkle-tools.sh)/sign_update" --ed-key-file - "$ZIP")
+          ./scripts/release-notes.sh "$VERSION" > "$RUNNER_TEMP/notes.md"
+          ./scripts/make-appcast.sh \
+            "https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/$APP_NAME-$VERSION.zip" \
+            "$SIGNATURE" "$RUNNER_TEMP/notes.md" > dist/appcast.xml
+          cat dist/appcast.xml
 
       - name: Create GitHub Release
         env:
@@ -46,7 +72,7 @@ jobs:
           # Release notes = this version's section of CHANGELOG.md (without the heading).
           ./scripts/release-notes.sh "${GITHUB_REF_NAME#v}" > "$RUNNER_TEMP/notes.md"
           gh release create "$GITHUB_REF_NAME" \
-            dist/*.zip dist/*.dmg dist/SHA256SUMS.txt \
+            dist/*.zip dist/*.dmg dist/SHA256SUMS.txt dist/appcast.xml \
             --title "Candela ${GITHUB_REF_NAME#v}" \
             --notes-file "$RUNNER_TEMP/notes.md" \
             --verify-tag

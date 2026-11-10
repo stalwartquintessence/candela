@@ -40,7 +40,8 @@ You can also open `Package.swift` in Xcode.
 - Tests must not use real device data such as serial numbers; build synthetic EDIDs with
   `EDIDBuilder` instead.
 - Update `CHANGELOG.md` under "Unreleased" for user-visible changes.
-- No new dependencies without discussion; the project builds with the Swift toolchain alone.
+- No new dependencies without discussion. Sparkle (for updates) is the only one, pinned to an
+  exact version.
 
 ## Pull request checklist
 

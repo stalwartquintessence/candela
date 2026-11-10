@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Sparkle.framework is signed with Candela's own self-signed certificate, which has no
+         Apple Team ID, so the hardened runtime's library validation would refuse to load it.
+         Every other hardened runtime protection stays on, and scripts/build-app.sh removes
+         library search paths outside the app and the system. -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+</dict>
+</plist>

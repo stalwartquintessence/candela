@@ -7,10 +7,11 @@ All notable changes are documented here. The format follows
 ## [Unreleased]
 
 ### Added
-- **Check for Updates...** in the Candela window asks GitHub for the latest release and offers
-  to open its page when it is newer. **Check for Updates Automatically** does this at most once
-  a day and announces each new version once; it is off by default. This is the only network
-  request Candela makes, and the README describes exactly what it sends.
+- **Check for Updates...** in the Candela window finds a newer version, shows what changed, and
+  installs it from inside the app: download, signature check, replace and relaunch, with the
+  brightness key permission kept and no Open Anyway prompt. **Check for Updates Automatically**
+  looks once a day; it is off by default. Updates use Sparkle 2.10.1 and are signed with an
+  Ed25519 key. The README describes exactly what is sent.
 
 ### Changed
 - Releases are signed with a stable self-signed certificate instead of ad-hoc, so macOS keeps
