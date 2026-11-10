@@ -116,6 +116,23 @@ struct UpdateCheckTests {
         #expect(UpdateCheck.result(statusCode: 500, body: Data(), current: current) == .failed(.unexpectedStatus(500)))
     }
 
+    @Test func offlineMessageReadsAsSentences() {
+        #expect(UpdateCheckFailure.offline("The Internet connection appears to be offline.").message
+            == "Candela could not reach GitHub. The Internet connection appears to be offline.")
+        #expect(UpdateCheckFailure.offline("The request timed out").message
+            == "Candela could not reach GitHub. The request timed out.")
+        #expect(UpdateCheckFailure.offline(" ").message == "Candela could not reach GitHub. Try again later.")
+    }
+
+    @Test(arguments: [UpdateCheckFailure.offline("The Internet connection appears to be offline."),
+                      .offline("no reply"), .rateLimited, .noReleases, .unexpectedStatus(502), .unreadableReply])
+    func failureMessagesHaveCleanPunctuation(_ failure: UpdateCheckFailure) {
+        let message = failure.message
+        #expect(!message.contains(".."), "\(message)")
+        #expect(!message.contains(".)"), "\(message)")
+        #expect(message.hasSuffix("."), "\(message)")
+    }
+
     @Test func automaticCheckRunsOnceADay() {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         #expect(UpdateCheck.isDue(lastCheck: nil, now: now))

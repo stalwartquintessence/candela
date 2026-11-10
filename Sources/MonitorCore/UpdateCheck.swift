@@ -90,7 +90,12 @@ public enum UpdateCheckFailure: Equatable, Sendable {
     public var message: String {
         switch self {
         case let .offline(reason):
-            return "Candela could not reach GitHub (\(reason)). Check your internet connection and try again."
+            // macOS's reason is already a sentence ("The Internet connection appears to be
+            // offline."), so it follows as one instead of in brackets.
+            let sentence = reason.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !sentence.isEmpty else { return "Candela could not reach GitHub. Try again later." }
+            let ending = sentence.last.map { ".!?".contains($0) } == true ? "" : "."
+            return "Candela could not reach GitHub. \(sentence)\(ending)"
         case .rateLimited:
             return "GitHub is limiting requests from this network. Try again later."
         case .noReleases:
