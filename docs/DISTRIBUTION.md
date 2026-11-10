@@ -19,8 +19,8 @@ git push -u origin main
 If you publish your own fork, change `BUNDLE_ID` in `scripts/config.sh` to an identifier you own,
 for example `io.github.<your-username>.Candela`, and update the log command in the README.
 macOS stores preferences and permissions under the bundle ID, so changing it later resets them.
-Also point the update check at your releases: `UpdateCheck.repository` in
-`Sources/MonitorCore/UpdateCheck.swift`, and the address in the README's Updates section.
+Also point updates at your releases: `SPARKLE_FEED_URL` in `scripts/config.sh` and the address
+in the README's Updates section, and create your own update key (section 2).
 
 Public repositories get unlimited free GitHub Actions minutes, so the included workflows run at
 no cost:
@@ -33,12 +33,14 @@ no cost:
 
 ## 2. Publish a release
 
-Once, before the first release, give the release workflow your signing identity so every
-release carries the same signature (see [Sign releases on GitHub Actions](#sign-releases-on-github-actions)):
+Once, before the first release, give the release workflow your signing identity, so every
+release carries the same signature (see [Sign releases on GitHub Actions](#sign-releases-on-github-actions)),
+and create the key that signs updates (see [Sign updates](#sign-updates)):
 
 ```sh
 ./scripts/create-signing-identity.sh   # if you have not already
 ./scripts/export-signing-identity.sh
+./scripts/create-update-key.sh         # then commit scripts/config.sh
 ```
 
 Then, for each release:
@@ -53,24 +55,27 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-The release workflow checks that the tag matches the version, runs the tests, builds and signs
-(it stops if the signing secrets are missing), and creates a GitHub Release with `Candela-0.1.0.dmg`, `Candela-0.1.0.zip` and `SHA256SUMS.txt`.
-GitHub hosts the downloads for free.
+The release workflow checks that the tag matches the version and that the update key matches
+the app, runs the tests, builds and signs (it stops if any key or secret is missing), signs the
+zip as an update, and creates a GitHub Release with `Candela-0.1.0.dmg`, `Candela-0.1.0.zip`,
+`SHA256SUMS.txt` and `appcast.xml`, the update feed that installed copies read. The release notes
+in both come from `CHANGELOG.md`. GitHub hosts the downloads for free.
 
 You can also build release files locally with `./scripts/package.sh` and upload them by hand
-on the repository's Releases page.
+on the repository's Releases page, but without a signed `appcast.xml` installed copies will not
+see that release.
 
 ## 3. What users see on first launch
 
-Apps that are not notarized by Apple are blocked the first time they are opened, and again the
-first time each downloaded update is opened. Users either:
+Apps that are not notarized by Apple are blocked the first time they are opened. Users either:
 
 - open **System Settings > Privacy & Security** and click **Open Anyway**, or
 - run `xattr -dr com.apple.quarantine /Applications/Candela.app`.
 
 This is normal for free open source Mac apps and is explained in the README's Install section.
-Because releases are signed with the same certificate, the Accessibility permission carries
-over to each update.
+It happens once: updates installed from inside Candela open without it, and because every
+release is signed with the same certificate, the Accessibility permission carries over too. Only
+a version downloaded by hand from the Releases page asks again.
 
 ## 4. Optional: a Homebrew tap
 
@@ -93,6 +98,8 @@ cask "candela" do
 
   depends_on arch: :arm64
   depends_on macos: ">= :ventura"
+
+  auto_updates true # Candela updates itself; brew upgrade leaves it alone
 
   app "Candela.app"
   binary "#{appdir}/Candela.app/Contents/MacOS/candelactl"
@@ -162,6 +169,45 @@ granted locally applies to them too.
 Anyone who has these secrets can sign apps that macOS accepts as Candela for this permission,
 so keep them only in the repository's secrets. To replace the identity, delete the signing
 folder, run both scripts again, and note in the release that users must allow Candela once more.
+
+## Sign updates
+
+Candela installs updates with [Sparkle](https://sparkle-project.org). Each update must be signed
+with an Ed25519 key whose public half is built into the app (`SPARKLE_PUBLIC_KEY` in
+`scripts/config.sh`); installed copies refuse anything else, and also check that the new
+version carries the same code signature. Create the key once:
+
+```sh
+./scripts/create-update-key.sh
+git commit -m "build: set the update signing key" scripts/config.sh
+```
+
+The script keeps the private key in your login keychain (as Sparkle's tools do, under the account
+`candela`), uploads it as the repository secret `SPARKLE_PRIVATE_KEY`, and writes the public key
+into `scripts/config.sh`. Running it again reuses the existing key. Before signing a release, the
+workflow runs `scripts/check-update-key.swift` to make sure the secret matches the public key.
+
+**Back up the private key** (for example in a password manager), because it cannot be replaced
+without stranding users:
+
+```sh
+"$(./scripts/sparkle-tools.sh)/generate_keys" --account candela -x candela-update-key.txt
+```
+
+If it is lost, installed copies can no longer be updated in place, and everyone has to download
+the next version by hand. Anyone who has it, together with the code signing secrets, can push an
+update to every user, so keep it only in your keychain, your backup and the repository secret.
+
+Sparkle's command line tools come from its GitHub release, fetched by `scripts/sparkle-tools.sh`
+and checked against the SHA-256 in `scripts/config.sh`. When upgrading Sparkle, change the
+version in `Package.swift` and `scripts/config.sh` together, with the new archive's checksum.
+
+How the app is put together: `scripts/build-app.sh` copies `Sparkle.framework` into
+`Contents/Frameworks` without its XPC services (only sandboxed apps use them), signs its helpers
+with your certificate, and signs the app with `Resources/Candela.entitlements`. That file turns
+off library validation, a hardened runtime check that would otherwise refuse to load a framework
+signed by a certificate without an Apple Team ID; every other hardened runtime protection stays
+on, and the build removes library search paths outside the app and the system.
 
 ## What the paid Apple Developer Program would add (not required)
 
