@@ -34,8 +34,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         let startedAtLogin = Self.launchedAsLoginItem
 
-        // Start from the user's ColorSync gamma in case another tool left a display dimmed.
-        gamma.restoreAll()
         NSApp.mainMenu = Self.makeMainMenu()
 
         NotificationCenter.default.addObserver(self, selector: #selector(screensChanged),
@@ -43,6 +41,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let workspace = NSWorkspace.shared.notificationCenter
         workspace.addObserver(self, selector: #selector(didWake), name: NSWorkspace.didWakeNotification, object: nil)
         workspace.addObserver(self, selector: #selector(didWake), name: NSWorkspace.screensDidWakeNotification, object: nil)
+        // A new color profile replaces the display's gamma table, and with it any dimming.
+        DistributedNotificationCenter.default().addObserver(
+            self, selector: #selector(colorProfileChanged),
+            name: Notification.Name(kColorSyncDisplayDeviceProfilesNotification.takeUnretainedValue() as String), object: nil)
 
         refreshDisplays()
 
@@ -141,6 +143,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 !next.contains { $0 === c } && Self.sameConnection(c.display, display)
             }
             if let existing = matches.first(where: { $0.displayID == display.displayID }) ?? matches.first {
+                // A dimmed display keeps its dimming state when macOS renumbers it.
+                gamma.move(from: existing.displayID, to: display.displayID)
                 existing.update(display: display, name: name)
                 next.append(existing)
             } else {
@@ -187,8 +191,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in self?.reapplyDimming() }
     }
 
+    @objc private func colorProfileChanged() {
+        Log.app("color profile changed")
+        // Give ColorSync a moment to load the new profile's table, then dim on top of it.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in self?.reapplyDimming() }
+    }
+
+    /// Dim again after macOS may have replaced the gamma tables. GammaDimmer notices a replaced
+    /// table and dims on top of it; a table that still shows Candela's dimming stays as it is.
     private func reapplyDimming() {
-        gamma.restoreAll()
         controllers.forEach { $0.applySoftwareDimming() }
     }
 
