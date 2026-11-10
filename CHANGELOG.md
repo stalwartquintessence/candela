@@ -6,6 +6,12 @@ All notable changes are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- **Check for Updates...** in the Candela window asks GitHub for the latest release and offers
+  to open its page when it is newer. **Check for Updates Automatically** does this at most once
+  a day and announces each new version once; it is off by default. This is the only network
+  request Candela makes, and the README describes exactly what it sends.
+
 ### Changed
 - Releases are signed with a stable self-signed certificate instead of ad-hoc, so macOS keeps
   the brightness key (Accessibility) permission across updates. Updating from 0.1.0 asks for it
