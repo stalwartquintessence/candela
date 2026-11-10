@@ -34,8 +34,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         let startedAtLogin = Self.launchedAsLoginItem
 
-        // Start from the user's ColorSync gamma in case another tool left a display dimmed.
-        gamma.restoreAll()
         NSApp.mainMenu = Self.makeMainMenu()
 
         NotificationCenter.default.addObserver(self, selector: #selector(screensChanged),
@@ -141,6 +139,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 !next.contains { $0 === c } && Self.sameConnection(c.display, display)
             }
             if let existing = matches.first(where: { $0.displayID == display.displayID }) ?? matches.first {
+                // A dimmed display keeps its dimming state when macOS renumbers it.
+                gamma.move(from: existing.displayID, to: display.displayID)
                 existing.update(display: display, name: name)
                 next.append(existing)
             } else {
@@ -171,7 +171,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func screensChanged() {
-        // Reconfiguration sends bursts of notifications; act once things settle.
+        // Reconfiguration sends bursts of notifications; act once things settle. Choosing another
+        // color profile arrives here too: it replaces the display's gamma table, and with it any
+        // dimming, which reapplyDimming() then puts on top of the new profile.
         pendingReconfigure?.cancel()
         let work = DispatchWorkItem { [weak self] in
             guard let self else { return }
@@ -187,8 +189,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in self?.reapplyDimming() }
     }
 
+    /// Dim again after macOS may have replaced the gamma tables. GammaDimmer notices a replaced
+    /// table and dims on top of it; a table that still shows Candela's dimming stays as it is.
     private func reapplyDimming() {
-        gamma.restoreAll()
         controllers.forEach { $0.applySoftwareDimming() }
     }
 

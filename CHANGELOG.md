@@ -13,6 +13,12 @@ All notable changes are documented here. The format follows
   looks once a day; it is off by default. Updates use Sparkle 2.10.1 and are signed with an
   Ed25519 key. The README describes exactly what is sent.
 
+### Fixed
+- Changing a display's color profile while Candela dims it no longer brings the old profile back
+  at 100%: dimming continues on top of the new profile, and the slider and screen stay in step.
+- Candela no longer resets the colors of every display at launch, after wake and when quitting,
+  which could undo other apps' changes. It only touches displays it dims.
+
 ### Changed
 - Releases are signed with a stable self-signed certificate instead of ad-hoc, so macOS keeps
   the brightness key (Accessibility) permission across updates. Updating from 0.1.0 asks for it
