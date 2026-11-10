@@ -18,6 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let hud = HUD()
     private let keyTap = MediaKeyTap()
     private let model = AppModel()
+    private let updates = UpdateChecker()
     private var controlsWindow: ControlsWindowController?
     private var accessibilityTimer: Timer?
     private var lastTrusted: Bool?
@@ -49,6 +50,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.handleKey(key, fine: fine, isDown: isDown) ?? false
         }
         startKeyTap()
+        updates.onBusyChange = { [weak self] busy in self?.model.isCheckingForUpdates = busy }
         refreshSettings()
         if !startedAtLogin { showControls() }
         Log.app("Candela \(AppVersion.string) started\(startedAtLogin ? " at login" : "") with \(controllers.count) external display(s)")
@@ -101,6 +103,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 setLaunchAtLogin: { [weak self] on in self?.setLaunchAtLogin(on) },
                 enableBrightnessKeys: { [weak self] in self?.openAccessibilitySettings() },
                 redetect: { [weak self] in self?.redetect() },
+                checkForUpdates: { [weak self] in self?.updates.checkNow() },
                 about: { [weak self] in self?.showAbout() }))
         }
         // A window that was closed opens again on its main page.

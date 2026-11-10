@@ -8,6 +8,7 @@ final class AppModel: ObservableObject {
     @Published var controllers: [DisplayController] = []
     @Published var brightnessKeysEnabled = false
     @Published var launchAtLogin = false
+    @Published var isCheckingForUpdates = false
     /// The display whose Display Info page is showing, or nil for the main page.
     @Published var infoDisplay: DisplayController?
 
@@ -21,6 +22,7 @@ struct ControlsActions {
     var setLaunchAtLogin: (Bool) -> Void
     var enableBrightnessKeys: () -> Void
     var redetect: () -> Void
+    var checkForUpdates: () -> Void
     var about: () -> Void
 }
 
@@ -76,6 +78,13 @@ struct ControlsView: View {
             HStack {
                 Button("Re-detect Displays", action: actions.redetect)
                 Spacer()
+                if model.isCheckingForUpdates {
+                    ProgressView()
+                        .controlSize(.small)
+                        .accessibilityLabel("Checking for updates")
+                }
+                Button("Check for Updates...", action: actions.checkForUpdates)
+                    .disabled(model.isCheckingForUpdates)
                 Button("About Candela", action: actions.about)
             }
             .padding(12)
