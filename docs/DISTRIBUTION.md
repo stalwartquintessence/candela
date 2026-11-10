@@ -31,6 +31,16 @@ no cost:
 
 ## 2. Publish a release
 
+Once, before the first release, give the release workflow your signing identity so every
+release carries the same signature (see [Sign releases on GitHub Actions](#sign-releases-on-github-actions)):
+
+```sh
+./scripts/create-signing-identity.sh   # if you have not already
+./scripts/export-signing-identity.sh
+```
+
+Then, for each release:
+
 1. Update `AppVersion.string` in `Sources/MonitorCore/Version.swift`.
 2. In `CHANGELOG.md`, move the entries under **Unreleased** into a new section for that
    version with the release date, for example `## [0.1.0] - 2026-12-01`.
@@ -41,8 +51,8 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-The release workflow checks that the tag matches the version, runs the tests, builds, and
-creates a GitHub Release with `Candela-0.1.0.dmg`, `Candela-0.1.0.zip` and `SHA256SUMS.txt`.
+The release workflow checks that the tag matches the version, runs the tests, builds and signs
+(it stops if the signing secrets are missing), and creates a GitHub Release with `Candela-0.1.0.dmg`, `Candela-0.1.0.zip` and `SHA256SUMS.txt`.
 GitHub hosts the downloads for free.
 
 You can also build release files locally with `./scripts/package.sh` and upload them by hand
@@ -50,14 +60,21 @@ on the repository's Releases page.
 
 ## 3. What users see on first launch
 
-Apps that are not notarized by Apple are blocked the first time they are opened. Users either:
+Apps that are not notarized by Apple are blocked the first time they are opened, and again the
+first time each downloaded update is opened. Users either:
 
 - open **System Settings > Privacy & Security** and click **Open Anyway**, or
 - run `xattr -dr com.apple.quarantine /Applications/Candela.app`.
 
 This is normal for free open source Mac apps and is explained in the README's Install section.
+Because releases are signed with the same certificate, the Accessibility permission carries
+over to each update.
 
 ## 4. Optional: a Homebrew tap
+
+Since 2026-09-01 the official Homebrew cask repository (`homebrew/cask`) only accepts apps
+that pass Gatekeeper, which needs Apple's paid notarization, and Homebrew removed the
+`--no-quarantine` option. Your own tap still works.
 
 A tap is just another free GitHub repository. Create `github.com/<your-username>/homebrew-tap`
 with `Casks/candela.rb`:
@@ -82,9 +99,9 @@ cask "candela" do
 end
 ```
 
-Users then install with `brew install --cask <your-username>/tap/candela`. Homebrew has been
-tightening its rules for apps that are not notarized, so check its current documentation if the
-install is refused; the GitHub download always works.
+Users then install with `brew install --cask <your-username>/tap/candela` and update with
+`brew upgrade`. macOS still blocks the first launch after each install or upgrade, exactly as
+for a download (see section 3).
 
 ## 5. Optional: a website
 
@@ -119,13 +136,35 @@ From now on rebuilds keep the permission.
 
 Never commit certificates or private keys; `.gitignore` already excludes common formats.
 
-Releases built on GitHub Actions are signed ad-hoc, so users grant the permission again after
-each update. That is expected for unsigned free apps.
+### Sign releases on GitHub Actions
+
+GitHub's build machines do not have your identity, so without help they sign ad-hoc and every
+update would ask users for the Accessibility permission again. Give them a copy, once:
+
+```sh
+./scripts/export-signing-identity.sh
+```
+
+It exports the identity to a temporary file, stores it as two encrypted repository secrets
+(`SIGNING_IDENTITY_P12` and `SIGNING_IDENTITY_PASSWORD`) with the GitHub CLI, and deletes the
+file. macOS may ask for the signing keychain's password before the key leaves it; the script
+puts that password on your clipboard. Both workflows then run
+`scripts/import-signing-identity.sh`, which loads the identity into a temporary keychain on the
+build machine. The release workflow stops if the secrets are missing, so a release is never
+signed ad-hoc by mistake. CI builds of pull requests from forks get no secrets and are signed
+ad-hoc.
+
+Releases then have the same designated requirement as your own builds, so the permission you
+granted locally applies to them too.
+
+Anyone who has these secrets can sign apps that macOS accepts as Candela for this permission,
+so keep them only in the repository's secrets. To replace the identity, delete the signing
+folder, run both scripts again, and note in the release that users must allow Candela once more.
 
 ## What the paid Apple Developer Program would add (not required)
 
 For 99 USD per year, Apple issues a Developer ID certificate and notarizes apps, which removes
-the first-launch warning and keeps permissions across updates for your users. Candela works
+the first-launch warning and allows a listing in the official Homebrew cask repository. Candela works
 fine without it. It can never be on the Mac App Store, because the App Store does not allow the
 private I2C APIs that DDC/CI control needs. If your university has an Apple Developer
 organization account, its IT department may be able to sign releases for you.
