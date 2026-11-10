@@ -20,7 +20,7 @@ SIGNING_KEYCHAIN="$SIGNING_DIR/signing.keychain-db"
 # serves the newest one. SPARKLE_PUBLIC_KEY is printed by scripts/create-update-key.sh; without
 # it the app is built with in-app updates switched off (for example in forks).
 SPARKLE_FEED_URL="${SPARKLE_FEED_URL:-https://github.com/stalwartquintessence/candela/releases/latest/download/appcast.xml}"
-SPARKLE_PUBLIC_KEY="${SPARKLE_PUBLIC_KEY:-}"
+SPARKLE_PUBLIC_KEY="${SPARKLE_PUBLIC_KEY:-uJ4UuWf35NFqlMg4hW/k3Ni04aQl5EBEXLlFQ/TPOG8=}"
 # Sparkle's command line tools (sign_update, generate_keys), fetched by scripts/sparkle-tools.sh.
 # Keep the version equal to the one pinned in Package.swift.
 SPARKLE_VERSION="2.10.1"
