@@ -19,6 +19,8 @@ git push -u origin main
 If you publish your own fork, change `BUNDLE_ID` in `scripts/config.sh` to an identifier you own,
 for example `io.github.<your-username>.Candela`, and update the log command in the README.
 macOS stores preferences and permissions under the bundle ID, so changing it later resets them.
+Also point the update check at your releases: `UpdateCheck.repository` in
+`Sources/MonitorCore/UpdateCheck.swift`, and the address in the README's Updates section.
 
 Public repositories get unlimited free GitHub Actions minutes, so the included workflows run at
 no cost:

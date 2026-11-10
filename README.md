@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/window.png" width="460" alt="The Candela window with brightness for an HP Z27 on an HDMI port">
+  <img src="docs/images/window.png" width="460" alt="The Candela window: brightness for an HP Z27 on an HDMI port, Launch at Login, Check for Updates Automatically and the brightness keys, with Check for Updates in the footer">
 </p>
 
 ## Features
@@ -27,7 +27,8 @@
   size, native resolution and refresh range decoded from the EDID, plus connection type,
   DDC/CI status and the monitor's full capability list. One click copies a report.
 - **`candelactl`**, a command line tool for scripting and diagnostics.
-- Remembers settings per monitor. No network access, no analytics.
+- Remembers settings per monitor. No analytics, and no network access except an
+  [update check](#updates) that runs only if you ask for it.
 
 <p align="center">
   <img src="docs/images/display-info.png" width="460" alt="The Display Info page for an HP Z27, with a Back button in the footer">
@@ -72,9 +73,25 @@ runs brings the window back. Each external display gets its own section:
 - **Display Info** opens the details as a page of the same window; **Back** returns.
   **Check DDC/CI Again** re-tests the connection, for example after you change cables.
 
-The window also has **Launch at Login** and the brightness key permission. Closing the window
-keeps Candela running; to quit it, press **⌘Q** while the window is open.
-When Candela starts at login it stays in the background without opening the window.
+The window also has **Launch at Login**, **Check for Updates Automatically** and the brightness
+key permission. Closing the window keeps Candela running; to quit it, press **⌘Q** while the
+window is open. When Candela starts at login it stays in the background without opening the
+window.
+
+### Updates
+
+**Check for Updates...** at the bottom of the window asks GitHub whether a newer version has
+been released. If there is one, **Download** opens its release page; install it like the first
+time, replacing Candela in Applications.
+
+To be told without asking, turn on **Check for Updates Automatically**. Candela then checks at
+most once a day and tells you about each new version once. It is off by default.
+
+This is the only network request Candela ever makes:
+`GET https://api.github.com/repos/stalwartquintessence/candela/releases/latest`, without
+cookies. Like any web request it shows GitHub your IP address, plus the app's version in the
+`User-Agent` header (`Candela/x.y.z`). Nothing else is sent. If the automatic check is off and
+you never click the button, Candela never goes online.
 
 ### When the monitor's controls are not reachable
 

@@ -8,6 +8,8 @@ final class AppModel: ObservableObject {
     @Published var controllers: [DisplayController] = []
     @Published var brightnessKeysEnabled = false
     @Published var launchAtLogin = false
+    @Published var checksForUpdatesAutomatically = false
+    @Published var isCheckingForUpdates = false
     /// The display whose Display Info page is showing, or nil for the main page.
     @Published var infoDisplay: DisplayController?
 
@@ -19,8 +21,10 @@ final class AppModel: ObservableObject {
 /// What the window asks the app to do.
 struct ControlsActions {
     var setLaunchAtLogin: (Bool) -> Void
+    var setAutomaticUpdateChecks: (Bool) -> Void
     var enableBrightnessKeys: () -> Void
     var redetect: () -> Void
+    var checkForUpdates: () -> Void
     var about: () -> Void
 }
 
@@ -55,6 +59,9 @@ struct ControlsView: View {
                 }
                 Section {
                     Toggle("Launch at Login", isOn: Binding(get: { model.launchAtLogin }, set: actions.setLaunchAtLogin))
+                    Toggle("Check for Updates Automatically",
+                           isOn: Binding(get: { model.checksForUpdatesAutomatically }, set: actions.setAutomaticUpdateChecks))
+                        .help("Once a day, Candela asks GitHub for the number of its latest version. Nothing else is sent.")
                     LabeledContent("Brightness keys") {
                         if model.brightnessKeysEnabled {
                             Text("On for the display under the pointer")
@@ -76,6 +83,13 @@ struct ControlsView: View {
             HStack {
                 Button("Re-detect Displays", action: actions.redetect)
                 Spacer()
+                if model.isCheckingForUpdates {
+                    ProgressView()
+                        .controlSize(.small)
+                        .accessibilityLabel("Checking for updates")
+                }
+                Button("Check for Updates...", action: actions.checkForUpdates)
+                    .disabled(model.isCheckingForUpdates)
                 Button("About Candela", action: actions.about)
             }
             .padding(12)
