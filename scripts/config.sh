@@ -21,6 +21,10 @@ SIGNING_KEYCHAIN="$SIGNING_DIR/signing.keychain-db"
 # it the app is built with in-app updates switched off (for example in forks).
 SPARKLE_FEED_URL="${SPARKLE_FEED_URL:-https://github.com/stalwartquintessence/candela/releases/latest/download/appcast.xml}"
 SPARKLE_PUBLIC_KEY="${SPARKLE_PUBLIC_KEY:-}"
+# Sparkle's command line tools (sign_update, generate_keys), fetched by scripts/sparkle-tools.sh.
+# Keep the version equal to the one pinned in Package.swift.
+SPARKLE_VERSION="2.10.1"
+SPARKLE_TOOLS_SHA256="1a856d2a9edb8e628de88121d7be04cf0e2167f8641650b78fca00b14244cf27"
 
 # The version lives in one place: Sources/MonitorCore/Version.swift (AppVersion.string).
 VERSION=$(sed -n 's/.*static let string = "\(.*\)".*/\1/p' Sources/MonitorCore/Version.swift)
