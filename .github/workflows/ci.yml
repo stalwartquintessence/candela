@@ -30,7 +30,14 @@ jobs:
       - name: Unit tests
         run: ./scripts/test.sh
 
-      - name: Build, sign (ad-hoc) and package
+      - name: Signing identity
+        # Secrets are not passed to pull requests from forks; those builds are signed ad-hoc.
+        env:
+          SIGNING_IDENTITY_P12: ${{ secrets.SIGNING_IDENTITY_P12 }}
+          SIGNING_IDENTITY_PASSWORD: ${{ secrets.SIGNING_IDENTITY_PASSWORD }}
+        run: ./scripts/import-signing-identity.sh
+
+      - name: Build, sign and package
         run: ./scripts/package.sh
 
       - name: Smoke test the CLI

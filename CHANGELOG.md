@@ -6,6 +6,11 @@ All notable changes are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- Releases are signed with a stable self-signed certificate instead of ad-hoc, so macOS keeps
+  the brightness key (Accessibility) permission across updates. Updating from 0.1.0 asks for it
+  once more.
+
 ## [0.1.0] - 2026-11-09
 
 First release.

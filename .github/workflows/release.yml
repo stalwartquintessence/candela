@@ -29,6 +29,13 @@ jobs:
       - name: Unit tests
         run: ./scripts/test.sh
 
+      - name: Signing identity
+        # Every release must carry the same signature, or users lose the Accessibility permission.
+        env:
+          SIGNING_IDENTITY_P12: ${{ secrets.SIGNING_IDENTITY_P12 }}
+          SIGNING_IDENTITY_PASSWORD: ${{ secrets.SIGNING_IDENTITY_PASSWORD }}
+        run: ./scripts/import-signing-identity.sh --required
+
       - name: Build and package
         run: ./scripts/package.sh
 
