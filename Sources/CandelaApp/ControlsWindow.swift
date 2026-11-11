@@ -12,6 +12,8 @@ final class AppModel: ObservableObject {
     @Published var alwaysShowInMenuBar = false
     /// False on desktop Macs, where the menu bar option has nothing to do with a lid.
     @Published var hasLid = true
+    /// On by default: shaking the pointer brings a display dimmed below 50% back to 50%.
+    @Published var shakeToBrighten = true
     @Published var checksForUpdatesAutomatically = false
     /// False while a check runs, and in builds without in-app updates.
     @Published var canCheckForUpdates = false
@@ -27,6 +29,7 @@ final class AppModel: ObservableObject {
 struct ControlsActions {
     var setLaunchAtLogin: (Bool) -> Void
     var setAlwaysShowInMenuBar: (Bool) -> Void
+    var setShakeToBrighten: (Bool) -> Void
     var setAutomaticUpdateChecks: (Bool) -> Void
     var enableBrightnessKeys: () -> Void
     var redetect: () -> Void
@@ -75,6 +78,10 @@ struct ControlsView: View {
                            isOn: Binding(get: { model.checksForUpdatesAutomatically }, set: actions.setAutomaticUpdateChecks))
                         .help("Once a day, Candela reads its update feed on GitHub. Nothing about you or your Mac is sent.")
                         .disabled(!Updater.isConfigured)
+                    Toggle(isOn: Binding(get: { model.shakeToBrighten }, set: actions.setShakeToBrighten)) {
+                        Text("Shake Pointer to Brighten")
+                        Text("Shaking the pointer on a display dimmed below 50% brings it back to 50%, so the pointer is easy to find.")
+                    }
                     LabeledContent("Brightness keys") {
                         if model.brightnessKeysEnabled {
                             Text("On for the display under the pointer")
