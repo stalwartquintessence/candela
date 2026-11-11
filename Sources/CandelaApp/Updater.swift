@@ -54,8 +54,8 @@ final class Updater: NSObject, SPUStandardUserDriverDelegate {
     var supportsGentleScheduledUpdateReminders: Bool { true }
 
     func standardUserDriverWillHandleShowingUpdate(_ handleShowingUpdate: Bool, forUpdate update: SUAppcastItem, state: SPUUserUpdateState) {
-        // Candela has no Dock or menu bar icon, so an update shown behind other windows would be
-        // easy to miss. The user turned automatic checks on, so bring it to the front.
+        // Candela has no Dock icon, and usually no menu bar icon, so an update shown behind other
+        // windows would be easy to miss. The user turned automatic checks on, so bring it to the front.
         guard handleShowingUpdate, !state.userInitiated else { return }
         Log.app("updates: found \(update.displayVersionString) in a scheduled check")
         NSApp.activate(ignoringOtherApps: true)

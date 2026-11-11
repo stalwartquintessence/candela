@@ -29,8 +29,8 @@ struct ControlsActions {
     var about: () -> Void
 }
 
-/// Candela has no menu bar icon. This window is where its controls live; opening Candela again
-/// (from Spotlight, Finder or Launchpad) brings it back. Display Info opens as a page inside it.
+/// This window is where Candela's controls live; opening Candela again (from Spotlight, Finder,
+/// Launchpad or the menu bar icon) brings it back. Display Info opens as a page inside it.
 struct ControlsView: View {
     @ObservedObject var model: AppModel
     let actions: ControlsActions
