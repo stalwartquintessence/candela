@@ -12,6 +12,10 @@ All notable changes are documented here. The format follows
   reach. **Always Show in Menu Bar** in the window keeps the icon there with the lid open too;
   it is off by default (#15).
 
+### Fixed
+- A dimmed display no longer flashes at full brightness for a second or so when the lid closes
+  or the displays change: dimming now returns as soon as macOS has reset the display.
+
 ### Changed
 - The Candela window opens taller, so its rows fit without scrolling. A window resized before
   opens at the new size once.
