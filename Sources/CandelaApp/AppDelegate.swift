@@ -348,7 +348,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Someone who cannot find the pointer on a display dimmed far down shakes it: bring that
-    /// display back to 50% so the pointer shows up. Brighter displays are left as they are.
+    /// display back to 50% so the pointer shows up. Displays above 20% are left as they are.
     private func pointerShaken() {
         guard let (screen, controller) = displayUnderPointer() else { return }
         let current = controller.brightness

@@ -125,7 +125,13 @@ struct ShakeToBrightenTests {
     @Test func dimDisplayComesBackToHalf() {
         #expect(ShakeToBrighten.brightness(after: 0) == 50)
         #expect(ShakeToBrighten.brightness(after: 12.5) == 50)
-        #expect(ShakeToBrighten.brightness(after: 49) == 50)
+        #expect(ShakeToBrighten.brightness(after: 20) == 50)
+    }
+
+    @Test func displaysAbove20PercentKeepTheirBrightness() {
+        #expect(ShakeToBrighten.brightness(after: 21) == nil)
+        #expect(ShakeToBrighten.brightness(after: 30) == nil)
+        #expect(ShakeToBrighten.brightness(after: 49) == nil)
     }
 
     @Test func neverDims() {
@@ -134,8 +140,14 @@ struct ShakeToBrightenTests {
         #expect(ShakeToBrighten.brightness(after: 100) == nil)
     }
 
+    @Test func brightnessKeyStepsAroundTheThreshold() {
+        // The brightness keys move in steps of 6.25%: 18.75% responds, the next step up does not.
+        #expect(ShakeToBrighten.brightness(after: 18.75) == 50)
+        #expect(ShakeToBrighten.brightness(after: 25) == nil)
+    }
+
     @Test func comparesTheWholePercentTheWindowShows() {
-        #expect(ShakeToBrighten.brightness(after: 49.8) == nil)
-        #expect(ShakeToBrighten.brightness(after: 49.4) == 50)
+        #expect(ShakeToBrighten.brightness(after: 20.4) == 50)
+        #expect(ShakeToBrighten.brightness(after: 20.6) == nil)
     }
 }

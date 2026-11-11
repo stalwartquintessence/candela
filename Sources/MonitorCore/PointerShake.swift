@@ -73,15 +73,18 @@ private struct Axis: Sendable {
     }
 }
 
-/// What a shake does: a display dimmed below 50% comes back to 50%, bright enough to find the
-/// pointer on. A shake never dims.
+/// What a shake does: a display dimmed to 20% or lower, where the pointer is hard to see, comes
+/// back to 50%. Brighter displays keep the brightness they were set to, and a shake never dims.
 public enum ShakeToBrighten {
+    /// Displays at this brightness or lower respond to a shake.
+    public static let threshold = 20.0
+    /// The brightness they come back to.
     public static let level = 50.0
 
     /// The brightness (0 to 100) to set after a shake, or nil to leave the display as it is.
     /// Brightness is compared as the whole percent the window shows, so a monitor that reports
-    /// 49.8% is already at 50%.
+    /// 20.4% counts as 20%.
     public static func brightness(after current: Double) -> Double? {
-        BrightnessMath.clamp(current).rounded() < level ? level : nil
+        BrightnessMath.clamp(current).rounded() <= threshold ? level : nil
     }
 }

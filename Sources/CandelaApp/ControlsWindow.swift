@@ -12,7 +12,7 @@ final class AppModel: ObservableObject {
     @Published var alwaysShowInMenuBar = false
     /// False on desktop Macs, where the menu bar option has nothing to do with a lid.
     @Published var hasLid = true
-    /// On by default: shaking the pointer brings a display dimmed below 50% back to 50%.
+    /// On by default: shaking the pointer brings a display dimmed to 20% or lower back to 50%.
     @Published var shakeToBrighten = true
     @Published var checksForUpdatesAutomatically = false
     /// False while a check runs, and in builds without in-app updates.
@@ -80,7 +80,7 @@ struct ControlsView: View {
                         .disabled(!Updater.isConfigured)
                     Toggle(isOn: Binding(get: { model.shakeToBrighten }, set: actions.setShakeToBrighten)) {
                         Text("Shake Pointer to Brighten")
-                        Text("Shaking the pointer on a display dimmed below 50% brings it back to 50%, so the pointer is easy to find.")
+                        Text("Shaking the pointer on a display at 20% or lower brings it back to 50%.")
                     }
                     LabeledContent("Brightness keys") {
                         if model.brightnessKeysEnabled {
