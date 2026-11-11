@@ -28,6 +28,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var accessibilityTimer: Timer?
     private var lastTrusted: Bool?
     private var pendingReconfigure: DispatchWorkItem?
+    private var dimmingWatch: Timer?
+    private var dimmingWatchEnd = Date.distantPast
 
     private var controllers: [DisplayController] {
         get { model.controllers }
@@ -52,6 +54,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         lid.onChange = { [weak self] state in
             Log.app("lid: \(state)")
             self?.updateMenuBarIcon()
+            // The display change follows the lid; watch from now on, so dimming returns at once.
+            self?.watchDimming()
         }
         lid.start()
         model.hasLid = lid.state != .noLid
@@ -199,10 +203,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         pendingReconfigure = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: work)
+        watchDimming()
     }
 
     @objc private func didWake() {
         // macOS restores ColorSync gamma on wake, which would undo software dimming.
+        watchDimming()
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
             self?.reapplyDimming()
             self?.lid.refresh()
@@ -213,6 +219,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// table and dims on top of it; a table that still shows Candela's dimming stays as it is.
     private func reapplyDimming() {
         controllers.forEach { $0.applySoftwareDimming() }
+    }
+
+    /// A display change, such as closing the lid, resets the gamma tables, which shows a dimmed
+    /// display at full brightness until reapplyDimming() runs once things settle. For a few
+    /// seconds after a change, look every 50 ms instead and dim again as soon as a reset table
+    /// stops changing. Each look reads one small table per display, so the watch costs nothing
+    /// noticeable; reapplyDimming() still runs afterwards as before.
+    private func watchDimming() {
+        dimmingWatchEnd = Date().addingTimeInterval(3)
+        guard dimmingWatch == nil else { return }
+        let timer = Timer(timeInterval: 0.05, repeats: true) { [weak self] timer in
+            guard let self, Date() < self.dimmingWatchEnd else {
+                timer.invalidate()
+                self?.dimmingWatch = nil
+                return
+            }
+            self.controllers.forEach { $0.reapplyDimmingIfReset() }
+        }
+        // Also while a menu is open, which runs the main loop in its event tracking mode.
+        RunLoop.main.add(timer, forMode: .common)
+        dimmingWatch = timer
     }
 
     private func redetect() {
