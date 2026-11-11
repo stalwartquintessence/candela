@@ -73,7 +73,7 @@ private final class BrightnessRow: NSView {
 
     init(name: String, value: Double, onChange: @escaping (Double) -> Void) {
         self.onChange = onChange
-        slider = NSSlider(value: value, minValue: 0, maxValue: 100, target: nil, action: nil)
+        slider = MenuSlider(value: value, minValue: 0, maxValue: 100, target: nil, action: nil)
         super.init(frame: NSRect(x: 0, y: 0, width: Self.width, height: 50))
         let inset = Self.inset
 
