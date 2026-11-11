@@ -12,7 +12,8 @@ extension NSScreen {
 
 /// Candela runs in the background without a Dock icon. Its controls live in one window, shown
 /// when the user opens Candela (and again whenever they reopen it), but not when macOS starts it
-/// at login. While the lid is closed, a menu bar icon offers brightness sliders too.
+/// at login. While the lid is closed (or always, if the user turns that on), a menu bar icon
+/// offers brightness sliders too.
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let gamma = GammaDimmer()
     private let hud = HUD()
@@ -53,6 +54,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.updateMenuBarIcon()
         }
         lid.start()
+        model.hasLid = lid.state != .noLid
+        model.alwaysShowInMenuBar = UserDefaults.standard.bool(forKey: Self.alwaysShowInMenuBarKey)
         updateMenuBarIcon()
 
         keyTap.handler = { [weak self] key, fine, isDown in
@@ -111,6 +114,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if controlsWindow == nil {
             controlsWindow = ControlsWindowController(model: model, actions: ControlsActions(
                 setLaunchAtLogin: { [weak self] on in self?.setLaunchAtLogin(on) },
+                setAlwaysShowInMenuBar: { [weak self] on in self?.setAlwaysShowInMenuBar(on) },
                 setAutomaticUpdateChecks: { [weak self] on in
                     self?.updater.setChecksAutomatically(on)
                     self?.model.checksForUpdatesAutomatically = on
@@ -219,8 +223,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: Menu bar
 
+    private static let alwaysShowInMenuBarKey = "alwaysShowInMenuBar"
+
+    private func setAlwaysShowInMenuBar(_ on: Bool) {
+        UserDefaults.standard.set(on, forKey: Self.alwaysShowInMenuBarKey)
+        model.alwaysShowInMenuBar = on
+        updateMenuBarIcon()
+    }
+
     private func updateMenuBarIcon() {
-        let shown = MenuBarIcon.isShown(always: false, lid: lid.state)
+        let shown = MenuBarIcon.isShown(always: model.alwaysShowInMenuBar, lid: lid.state)
         guard shown != menuBar.isVisible else { return }
         menuBar.setVisible(shown)
         Log.app("menu bar icon \(shown ? "shown" : "hidden") (lid: \(lid.state))")

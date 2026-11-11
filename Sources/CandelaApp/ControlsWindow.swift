@@ -8,6 +8,10 @@ final class AppModel: ObservableObject {
     @Published var controllers: [DisplayController] = []
     @Published var brightnessKeysEnabled = false
     @Published var launchAtLogin = false
+    /// Off by default: the menu bar icon then shows only while the lid is closed.
+    @Published var alwaysShowInMenuBar = false
+    /// False on desktop Macs, where the menu bar option has nothing to do with a lid.
+    @Published var hasLid = true
     @Published var checksForUpdatesAutomatically = false
     /// False while a check runs, and in builds without in-app updates.
     @Published var canCheckForUpdates = false
@@ -22,6 +26,7 @@ final class AppModel: ObservableObject {
 /// What the window asks the app to do.
 struct ControlsActions {
     var setLaunchAtLogin: (Bool) -> Void
+    var setAlwaysShowInMenuBar: (Bool) -> Void
     var setAutomaticUpdateChecks: (Bool) -> Void
     var enableBrightnessKeys: () -> Void
     var redetect: () -> Void
@@ -60,6 +65,12 @@ struct ControlsView: View {
                 }
                 Section {
                     Toggle("Launch at Login", isOn: Binding(get: { model.launchAtLogin }, set: actions.setLaunchAtLogin))
+                    Toggle(isOn: Binding(get: { model.alwaysShowInMenuBar }, set: actions.setAlwaysShowInMenuBar)) {
+                        Text(model.hasLid ? "Always Show in Menu Bar" : "Show in Menu Bar")
+                        Text(model.hasLid
+                            ? "When this is off, the icon appears only while the lid is closed."
+                            : "A brightness slider for each display, one click away.")
+                    }
                     Toggle("Check for Updates Automatically",
                            isOn: Binding(get: { model.checksForUpdatesAutomatically }, set: actions.setAutomaticUpdateChecks))
                         .help("Once a day, Candela reads its update feed on GitHub. Nothing about you or your Mac is sent.")
