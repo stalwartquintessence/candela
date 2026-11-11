@@ -55,4 +55,12 @@ public struct DimmingState: Equatable, Sendable {
         guard let state, !state.wasReplaced(byCurrent: current) else { return current }
         return state.original
     }
+
+    /// True when Candela's table was replaced and the replacement has stopped changing: it is the
+    /// same table as at the previous look. During a display change macOS can fade the picture
+    /// through the gamma table, and a table caught mid-fade must not become the original.
+    public func hasSettledReplacement(current: GammaTable, previous: GammaTable?) -> Bool {
+        guard let previous, wasReplaced(byCurrent: current) else { return false }
+        return current.matches(previous)
+    }
 }
