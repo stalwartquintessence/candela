@@ -19,6 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let hud = HUD()
     private let keyTap = MediaKeyTap()
     private let lid = LidMonitor()
+    private let shake = ShakeMonitor()
     private let model = AppModel()
     private let updater = Updater()
     private lazy var menuBar = MenuBarController(
@@ -66,6 +67,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.handleKey(key, fine: fine, isDown: isDown) ?? false
         }
         startKeyTap()
+        shake.onShake = { [weak self] in self?.pointerShaken() }
+        model.shakeToBrighten = Self.shakeToBrightenSetting
+        if model.shakeToBrighten { shake.start() }
         updater.onCanCheckChange = { [weak self] canCheck in self?.model.canCheckForUpdates = canCheck }
         updater.start()
         refreshSettings()
@@ -119,6 +123,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             controlsWindow = ControlsWindowController(model: model, actions: ControlsActions(
                 setLaunchAtLogin: { [weak self] on in self?.setLaunchAtLogin(on) },
                 setAlwaysShowInMenuBar: { [weak self] on in self?.setAlwaysShowInMenuBar(on) },
+                setShakeToBrighten: { [weak self] on in self?.setShakeToBrighten(on) },
                 setAutomaticUpdateChecks: { [weak self] on in
                     self?.updater.setChecksAutomatically(on)
                     self?.model.checksForUpdatesAutomatically = on
@@ -248,6 +253,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         refreshDisplays()
     }
 
+    /// The external display the pointer is on, or nil on the built-in display.
+    private func displayUnderPointer() -> (NSScreen, DisplayController)? {
+        let mouse = NSEvent.mouseLocation
+        guard let screen = NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) }),
+              let controller = controllers.first(where: { $0.displayID == screen.displayID }) else { return nil }
+        return (screen, controller)
+    }
+
     // MARK: Menu bar
 
     private static let alwaysShowInMenuBarKey = "alwaysShowInMenuBar"
@@ -294,9 +307,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Returns true when the key was handled (and should not reach macOS).
     private func handleKey(_ key: MediaKeyTap.Key, fine: Bool, isDown: Bool) -> Bool {
-        let mouse = NSEvent.mouseLocation
-        guard let screen = NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) }),
-              let controller = controllers.first(where: { $0.displayID == screen.displayID }) else {
+        guard let (screen, controller) = displayUnderPointer() else {
             return false // the built-in display: let macOS handle it
         }
         if isDown {
@@ -318,6 +329,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
             NSWorkspace.shared.open(url)
         }
+    }
+
+    // MARK: Shake to brighten
+
+    private static let shakeToBrightenKey = "shakeToBrighten"
+
+    /// On unless the user turned it off.
+    private static var shakeToBrightenSetting: Bool {
+        UserDefaults.standard.object(forKey: shakeToBrightenKey) as? Bool ?? true
+    }
+
+    /// While the option is off, Candela does not follow the pointer at all.
+    private func setShakeToBrighten(_ on: Bool) {
+        UserDefaults.standard.set(on, forKey: Self.shakeToBrightenKey)
+        model.shakeToBrighten = on
+        if on { shake.start() } else { shake.stop() }
+    }
+
+    /// Someone who cannot find the pointer on a display dimmed far down shakes it: bring that
+    /// display back to 50% so the pointer shows up. Displays above 20% are left as they are.
+    private func pointerShaken() {
+        guard let (screen, controller) = displayUnderPointer() else { return }
+        let current = controller.brightness
+        guard let level = ShakeToBrighten.brightness(after: current) else { return }
+        Log.app("pointer shaken on \(controller.name): brightness \(Int(current.rounded()))% to \(Int(level))%")
+        controller.setBrightness(level)
+        hud.show(level: level, name: controller.name, on: screen)
     }
 
     // MARK: Settings
