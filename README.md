@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/window.png" width="460" alt="The Candela window: brightness for an HP Z27 on an HDMI port, Launch at Login, Always Show in Menu Bar, Check for Updates Automatically and the brightness keys, with Check for Updates in the footer">
+  <img src="docs/images/window.png" width="460" alt="The Candela window: brightness for an HP Z27 on an HDMI port, Launch at Login, Always Show in Menu Bar, Check for Updates Automatically, Shake Pointer to Brighten and the brightness keys, with Check for Updates in the footer">
 </p>
 
 ## Features
