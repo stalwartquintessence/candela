@@ -22,6 +22,8 @@
   of many Apple Silicon Macs), AirPlay and other virtual displays, by dimming the picture.
 - **Brightness keys** work on the display under the pointer. A small indicator in the style
   of macOS 26 appears at the top right of that display. Hold Option+Shift for fine steps.
+- **Shake to find the pointer**: when the pointer is lost on a display dimmed far down, shake
+  it. A display below 50% comes back to 50%, so the pointer is easy to see again.
 - **Stays out of the way**: no Dock icon, and no menu bar icon until you need one. While a
   MacBook's lid is closed, its brightness keys are out of reach, so a sun in the menu bar offers a
   brightness slider for each display. **Always Show in Menu Bar** keeps it there.
@@ -84,9 +86,9 @@ runs brings the window back. Each external display gets its own section:
   **Check DDC/CI Again** re-tests the connection, for example after you change cables.
 
 The window also has **Launch at Login**, **Always Show in Menu Bar**, **Check for Updates
-Automatically** and the brightness key permission. Closing the window keeps Candela running; to
-quit it, press **⌘Q** while the window is open. When Candela starts at login it stays in the
-background without opening the window.
+Automatically**, **Shake Pointer to Brighten** and the brightness key permission. Closing the
+window keeps Candela running; to quit it, press **⌘Q** while the window is open. When Candela
+starts at login it stays in the background without opening the window.
 
 ### Menu bar icon
 
@@ -98,6 +100,17 @@ window. The icon goes away when you open the lid.
 To keep the icon in the menu bar all the time, turn on **Always Show in Menu Bar** in the window.
 It is off by default. On a Mac without a lid, such as a Mac mini, the option is called
 **Show in Menu Bar**.
+
+### Shake to find the pointer
+
+Lost the pointer on a display you dimmed far down? Shake it quickly back and forth, as you would
+to make macOS enlarge it. If that display is below 50%, Candela brings it back to 50% and shows
+the brightness indicator. A shake never dims a display, and the built-in display is left to
+macOS.
+
+**Shake Pointer to Brighten** is on by default. Following the pointer needs no permission, and
+Candela only counts quick turns; it keeps no record of where the pointer goes. Turn the option
+off and Candela stops following the pointer.
 
 ### Updates
 

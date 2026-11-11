@@ -11,6 +11,9 @@ All notable changes are documented here. The format follows
   for each external display, since the brightness keys on the MacBook's keyboard are out of
   reach. **Always Show in Menu Bar** in the window keeps the icon there with the lid open too;
   it is off by default (#15).
+- Shake the pointer to find it on a dark display: a display dimmed below 50% comes back to 50%,
+  with the brightness indicator. **Shake Pointer to Brighten** in the window turns it off; it is
+  on by default and needs no permission (#16).
 
 ### Fixed
 - A dimmed display no longer flashes at full brightness for a second or so when the lid closes
