@@ -6,6 +6,16 @@ All notable changes are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- While a MacBook's lid is closed, Candela shows a sun in the menu bar with a brightness slider
+  for each external display, since the brightness keys on the MacBook's keyboard are out of
+  reach. **Always Show in Menu Bar** in the window keeps the icon there with the lid open too;
+  it is off by default (#15).
+
+### Changed
+- The Candela window opens taller, so its rows fit without scrolling. A window resized before
+  opens at the new size once.
+
 ## [0.2.0] - 2026-11-09
 
 ### Added

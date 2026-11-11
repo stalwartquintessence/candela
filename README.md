@@ -22,7 +22,9 @@
   of many Apple Silicon Macs), AirPlay and other virtual displays, by dimming the picture.
 - **Brightness keys** work on the display under the pointer. A small indicator in the style
   of macOS 26 appears at the top right of that display. Hold Option+Shift for fine steps.
-- **No menu bar icon**: Candela runs quietly in the background. Open it to see its window.
+- **Stays out of the way**: no Dock icon, and no menu bar icon until you need one. While a
+  MacBook's lid is closed, its brightness keys are out of reach, so a sun in the menu bar offers a
+  brightness slider for each display. **Always Show in Menu Bar** keeps it there.
 - **Display Info**, a page in the same window: vendor, model, serial number, manufacture date,
   size, native resolution and refresh range decoded from the EDID, plus connection type,
   DDC/CI status and the monitor's full capability list. One click copies a report.
@@ -70,8 +72,8 @@ Intel Macs are not supported: they use a different I2C interface.
 
 ## Using Candela
 
-Candela has no menu bar or Dock icon. It runs in the background, and the brightness keys adjust
-the display under the pointer.
+Candela has no Dock icon. It runs in the background, and the brightness keys adjust the display
+under the pointer.
 
 Open Candela from Spotlight, Finder or Launchpad to see its window; opening it again while it
 runs brings the window back. Each external display gets its own section:
@@ -81,10 +83,21 @@ runs brings the window back. Each external display gets its own section:
 - **Display Info** opens the details as a page of the same window; **Back** returns.
   **Check DDC/CI Again** re-tests the connection, for example after you change cables.
 
-The window also has **Launch at Login**, **Check for Updates Automatically** and the brightness
-key permission. Closing the window keeps Candela running; to quit it, press **⌘Q** while the
-window is open. When Candela starts at login it stays in the background without opening the
-window.
+The window also has **Launch at Login**, **Always Show in Menu Bar**, **Check for Updates
+Automatically** and the brightness key permission. Closing the window keeps Candela running; to
+quit it, press **⌘Q** while the window is open. When Candela starts at login it stays in the
+background without opening the window.
+
+### Menu bar icon
+
+With the lid closed, the brightness keys on a MacBook's keyboard are out of reach, and an
+external keyboard may have none. So while the lid is closed, Candela shows a sun in the menu bar.
+Click it for a brightness slider for each external display, or choose **Open Candela** for the
+window. The icon goes away when you open the lid.
+
+To keep the icon in the menu bar all the time, turn on **Always Show in Menu Bar** in the window.
+It is off by default. On a Mac without a lid, such as a Mac mini, the option is called
+**Show in Menu Bar**.
 
 ### Updates
 
