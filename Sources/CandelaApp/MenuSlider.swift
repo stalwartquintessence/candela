@@ -4,6 +4,11 @@ import AppKit
 /// pointer goes, like sliders in windows. In a menu, AppKit stops sending a slider the drag once
 /// the pointer leaves its menu item, so this one reads the drag itself until the button is up.
 final class MenuSlider: NSSlider {
+    override class var cellClass: AnyClass? {
+        get { AccentSliderCell.self }
+        set {}
+    }
+
     override func mouseDown(with event: NSEvent) {
         guard isEnabled, let cell = cell as? NSSliderCell else { return super.mouseDown(with: event) }
         let bar = cell.barRect(flipped: isFlipped)
@@ -50,5 +55,20 @@ final class MenuSlider: NSSlider {
             inWindow = window.convertPoint(fromScreen: event.locationInWindow)
         }
         return convert(inWindow, from: nil)
+    }
+}
+
+/// Fills the bar up to the knob with the accent color, like the slider in the Candela window.
+/// Opening a menu does not make Candela the active app, so AppKit would draw the filled part in
+/// gray, as for a slider in a window in the background. The empty part keeps the system's color.
+private final class AccentSliderCell: NSSliderCell {
+    override func drawBar(inside rect: NSRect, flipped: Bool) {
+        let radius = rect.height / 2
+        NSColor.quaternaryLabelColor.setFill()
+        NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius).fill()
+        var filled = rect
+        filled.size.width = max(0, knobRect(flipped: flipped).midX - rect.minX)
+        NSColor.controlAccentColor.setFill()
+        NSBezierPath(roundedRect: filled, xRadius: radius, yRadius: radius).fill()
     }
 }
