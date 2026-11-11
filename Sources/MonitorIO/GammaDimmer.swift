@@ -16,6 +16,8 @@ import MonitorCore
 
 public final class GammaDimmer {
     private var states: [CGDirectDisplayID: DimmingState] = [:]
+    /// The table each dimmed display showed at the last `hasSettledReplacement` call.
+    private var lastLook: [CGDirectDisplayID: GammaTable] = [:]
 
     public init() {}
 
@@ -40,12 +42,23 @@ public final class GammaDimmer {
         guard Self.write(original.scaled(by: factor), to: id) else { return false }
         // Remember what the display reports back, so rounding is never mistaken for a change.
         states[id] = DimmingState(original: original, applied: Self.read(id) ?? original.scaled(by: factor))
+        lastLook[id] = nil
         return true
+    }
+
+    /// For the moments after a display change, called repeatedly: true once something replaced a
+    /// dimmed display's table and the replacement looks the same as at the previous call, so
+    /// dimming can go back on top of it straight away.
+    public func hasSettledReplacement(_ id: CGDirectDisplayID) -> Bool {
+        guard let state = states[id], let current = Self.read(id) else { return false }
+        defer { lastLook[id] = current }
+        return state.hasSettledReplacement(current: current, previous: lastLook[id])
     }
 
     /// Put one display back to its own table. A table that was replaced while dimmed is left as
     /// it is, because it already is the display's own.
     public func restore(_ id: CGDirectDisplayID) {
+        lastLook[id] = nil
         guard let state = states.removeValue(forKey: id) else { return }
         guard let current = Self.read(id) else { return }
         if state.wasReplaced(byCurrent: current) {
@@ -63,6 +76,7 @@ public final class GammaDimmer {
     /// The display is gone: forget it without writing anything.
     public func forget(_ id: CGDirectDisplayID) {
         states[id] = nil
+        lastLook[id] = nil
     }
 
     /// macOS gave a dimmed display a new ID (after sleep or reconnection). Keep its state, so its
@@ -70,6 +84,7 @@ public final class GammaDimmer {
     public func move(from old: CGDirectDisplayID, to new: CGDirectDisplayID) {
         guard old != new, let state = states.removeValue(forKey: old) else { return }
         states[new] = state
+        lastLook[new] = lastLook.removeValue(forKey: old)
     }
 
     // MARK: Quartz
