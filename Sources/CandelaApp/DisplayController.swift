@@ -169,6 +169,13 @@ final class DisplayController: ObservableObject, Identifiable {
         return writeGenerations[code] == generation
     }
 
+    /// Dim again as soon as macOS has reset the display's table and finished changing it. Called
+    /// often for a few seconds after a display change, so it does nothing in every other case.
+    func reapplyDimmingIfReset() {
+        guard !plan.usesHardwareBrightness, gamma.hasSettledReplacement(displayID) else { return }
+        gamma.setBrightness(softwareBrightness, for: displayID)
+    }
+
     /// Apply or remove software dimming according to the current method and status.
     func applySoftwareDimming() {
         if plan.usesHardwareBrightness {

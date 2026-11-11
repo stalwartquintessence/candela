@@ -62,4 +62,19 @@ struct GammaTableTests {
         let original = DimmingState.original(current: ramp().scaled(by: 0.6), state: state)
         #expect(original.scaled(by: 0.6) == ramp().scaled(by: 0.6))
     }
+
+    @Test func aReplacementCountsOnceItStopsChanging() {
+        // Closing the lid: macOS resets the table to the profile, possibly through a fade.
+        let state = DimmingState(original: ramp(), applied: ramp().scaled(by: 0.6))
+        // Candela's own table, seen twice: nothing to do.
+        #expect(!state.hasSettledReplacement(current: ramp().scaled(by: 0.6), previous: ramp().scaled(by: 0.6)))
+        // The first look at a replaced table: wait for a second one.
+        #expect(!state.hasSettledReplacement(current: ramp(), previous: nil))
+        #expect(!state.hasSettledReplacement(current: ramp(), previous: ramp().scaled(by: 0.6)))
+        // Mid-fade, the table differs at every look.
+        #expect(!state.hasSettledReplacement(current: ramp(scale: 0.5), previous: ramp(scale: 0.3)))
+        // The same replaced table twice: settled.
+        #expect(state.hasSettledReplacement(current: ramp(), previous: ramp()))
+        #expect(state.hasSettledReplacement(current: otherProfile(), previous: otherProfile()))
+    }
 }

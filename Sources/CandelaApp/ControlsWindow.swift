@@ -8,6 +8,10 @@ final class AppModel: ObservableObject {
     @Published var controllers: [DisplayController] = []
     @Published var brightnessKeysEnabled = false
     @Published var launchAtLogin = false
+    /// Off by default: the menu bar icon then shows only while the lid is closed.
+    @Published var alwaysShowInMenuBar = false
+    /// False on desktop Macs, where the menu bar option has nothing to do with a lid.
+    @Published var hasLid = true
     @Published var checksForUpdatesAutomatically = false
     /// False while a check runs, and in builds without in-app updates.
     @Published var canCheckForUpdates = false
@@ -22,6 +26,7 @@ final class AppModel: ObservableObject {
 /// What the window asks the app to do.
 struct ControlsActions {
     var setLaunchAtLogin: (Bool) -> Void
+    var setAlwaysShowInMenuBar: (Bool) -> Void
     var setAutomaticUpdateChecks: (Bool) -> Void
     var enableBrightnessKeys: () -> Void
     var redetect: () -> Void
@@ -29,8 +34,8 @@ struct ControlsActions {
     var about: () -> Void
 }
 
-/// Candela has no menu bar icon. This window is where its controls live; opening Candela again
-/// (from Spotlight, Finder or Launchpad) brings it back. Display Info opens as a page inside it.
+/// This window is where Candela's controls live; opening Candela again (from Spotlight, Finder,
+/// Launchpad or the menu bar icon) brings it back. Display Info opens as a page inside it.
 struct ControlsView: View {
     @ObservedObject var model: AppModel
     let actions: ControlsActions
@@ -43,7 +48,7 @@ struct ControlsView: View {
                 mainPage
             }
         }
-        .frame(minWidth: 460, idealWidth: 480, minHeight: 380, idealHeight: 480)
+        .frame(minWidth: 460, idealWidth: 480, minHeight: 380, idealHeight: ControlsWindowController.defaultHeight)
     }
 
     private var mainPage: some View {
@@ -60,6 +65,12 @@ struct ControlsView: View {
                 }
                 Section {
                     Toggle("Launch at Login", isOn: Binding(get: { model.launchAtLogin }, set: actions.setLaunchAtLogin))
+                    Toggle(isOn: Binding(get: { model.alwaysShowInMenuBar }, set: actions.setAlwaysShowInMenuBar)) {
+                        Text(model.hasLid ? "Always Show in Menu Bar" : "Show in Menu Bar")
+                        Text(model.hasLid
+                            ? "When this is off, the icon appears only while the lid is closed."
+                            : "A brightness slider for each display, one click away.")
+                    }
                     Toggle("Check for Updates Automatically",
                            isOn: Binding(get: { model.checksForUpdatesAutomatically }, set: actions.setAutomaticUpdateChecks))
                         .help("Once a day, Candela reads its update feed on GitHub. Nothing about you or your Mac is sent.")
@@ -188,10 +199,16 @@ private struct LevelRow: View {
 }
 
 final class ControlsWindowController: NSWindowController, NSWindowDelegate {
+    /// Room for one display with a few controls and all the options, without scrolling.
+    static let defaultHeight: CGFloat = 560
+    /// macOS restores the window's last frame by this name. It changed when the window grew taller
+    /// (it was "Candela"), so windows saved at the old, shorter size open at the new one once.
+    private static let frameName = "Candela Controls"
+
     private var titleUpdates: AnyCancellable?
 
     init(model: AppModel, actions: ControlsActions) {
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 480, height: 480),
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 480, height: Self.defaultHeight),
                               styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         window.title = "Candela"
         window.isReleasedWhenClosed = false
@@ -203,7 +220,7 @@ final class ControlsWindowController: NSWindowController, NSWindowDelegate {
         window.collectionBehavior.insert(.fullScreenNone)
         window.standardWindowButton(.zoomButton)?.isEnabled = false
         window.center()
-        window.setFrameAutosaveName("Candela")
+        window.setFrameAutosaveName(Self.frameName)
         super.init(window: window)
         window.delegate = self
         // The title names the page, like System Settings: "Candela", or "HP Z27 Info".

@@ -10,19 +10,26 @@ extension NSScreen {
     }
 }
 
-/// Candela runs in the background without a Dock or menu bar icon. Its controls live in one
-/// window, shown when the user opens Candela (and again whenever they reopen it), but not when
-/// macOS starts it at login.
+/// Candela runs in the background without a Dock icon. Its controls live in one window, shown
+/// when the user opens Candela (and again whenever they reopen it), but not when macOS starts it
+/// at login. While the lid is closed (or always, if the user turns that on), a menu bar icon
+/// offers brightness sliders too.
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let gamma = GammaDimmer()
     private let hud = HUD()
     private let keyTap = MediaKeyTap()
+    private let lid = LidMonitor()
     private let model = AppModel()
     private let updater = Updater()
+    private lazy var menuBar = MenuBarController(
+        controllers: { [weak self] in self?.controllers ?? [] },
+        openWindow: { [weak self] in self?.showControls() })
     private var controlsWindow: ControlsWindowController?
     private var accessibilityTimer: Timer?
     private var lastTrusted: Bool?
     private var pendingReconfigure: DispatchWorkItem?
+    private var dimmingWatch: Timer?
+    private var dimmingWatchEnd = Date.distantPast
 
     private var controllers: [DisplayController] {
         get { model.controllers }
@@ -43,6 +50,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         workspace.addObserver(self, selector: #selector(didWake), name: NSWorkspace.screensDidWakeNotification, object: nil)
 
         refreshDisplays()
+
+        lid.onChange = { [weak self] state in
+            Log.app("lid: \(state)")
+            self?.updateMenuBarIcon()
+            // The display change follows the lid; watch from now on, so dimming returns at once.
+            self?.watchDimming()
+        }
+        lid.start()
+        model.hasLid = lid.state != .noLid
+        model.alwaysShowInMenuBar = UserDefaults.standard.bool(forKey: Self.alwaysShowInMenuBarKey)
+        updateMenuBarIcon()
 
         keyTap.handler = { [weak self] key, fine, isDown in
             self?.handleKey(key, fine: fine, isDown: isDown) ?? false
@@ -100,6 +118,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if controlsWindow == nil {
             controlsWindow = ControlsWindowController(model: model, actions: ControlsActions(
                 setLaunchAtLogin: { [weak self] on in self?.setLaunchAtLogin(on) },
+                setAlwaysShowInMenuBar: { [weak self] on in self?.setAlwaysShowInMenuBar(on) },
                 setAutomaticUpdateChecks: { [weak self] on in
                     self?.updater.setChecksAutomatically(on)
                     self?.model.checksForUpdatesAutomatically = on
@@ -179,14 +198,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self else { return }
             self.refreshDisplays()
             self.reapplyDimming()
+            // Closing or opening the lid also turns the built-in display off or on.
+            self.lid.refresh()
         }
         pendingReconfigure = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: work)
+        watchDimming()
     }
 
     @objc private func didWake() {
         // macOS restores ColorSync gamma on wake, which would undo software dimming.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in self?.reapplyDimming() }
+        watchDimming()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            self?.reapplyDimming()
+            self?.lid.refresh()
+        }
     }
 
     /// Dim again after macOS may have replaced the gamma tables. GammaDimmer notices a replaced
@@ -195,10 +221,48 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controllers.forEach { $0.applySoftwareDimming() }
     }
 
+    /// A display change, such as closing the lid, resets the gamma tables, which shows a dimmed
+    /// display at full brightness until reapplyDimming() runs once things settle. For a few
+    /// seconds after a change, look every 50 ms instead and dim again as soon as a reset table
+    /// stops changing. Each look reads one small table per display, so the watch costs nothing
+    /// noticeable; reapplyDimming() still runs afterwards as before.
+    private func watchDimming() {
+        dimmingWatchEnd = Date().addingTimeInterval(3)
+        guard dimmingWatch == nil else { return }
+        let timer = Timer(timeInterval: 0.05, repeats: true) { [weak self] timer in
+            guard let self, Date() < self.dimmingWatchEnd else {
+                timer.invalidate()
+                self?.dimmingWatch = nil
+                return
+            }
+            self.controllers.forEach { $0.reapplyDimmingIfReset() }
+        }
+        // Also while a menu is open, which runs the main loop in its event tracking mode.
+        RunLoop.main.add(timer, forMode: .common)
+        dimmingWatch = timer
+    }
+
     private func redetect() {
         controllers.forEach { gamma.restore($0.displayID) }
         controllers.removeAll()
         refreshDisplays()
+    }
+
+    // MARK: Menu bar
+
+    private static let alwaysShowInMenuBarKey = "alwaysShowInMenuBar"
+
+    private func setAlwaysShowInMenuBar(_ on: Bool) {
+        UserDefaults.standard.set(on, forKey: Self.alwaysShowInMenuBarKey)
+        model.alwaysShowInMenuBar = on
+        updateMenuBarIcon()
+    }
+
+    private func updateMenuBarIcon() {
+        let shown = MenuBarIcon.isShown(always: model.alwaysShowInMenuBar, lid: lid.state)
+        guard shown != menuBar.isVisible else { return }
+        menuBar.setVisible(shown)
+        Log.app("menu bar icon \(shown ? "shown" : "hidden") (lid: \(lid.state))")
     }
 
     // MARK: Brightness keys
