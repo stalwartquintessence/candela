@@ -272,7 +272,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func updateMenuBarIcon() {
-        let shown = MenuBarIcon.isShown(always: model.alwaysShowInMenuBar, lid: lid.state)
+        let shown = MenuBarIcon.isShown(mode: model.alwaysShowInMenuBar ? .always : .whileLidClosed, lid: lid.state)
         guard shown != menuBar.isVisible else { return }
         menuBar.setVisible(shown)
         Log.app("menu bar icon \(shown ? "shown" : "hidden") (lid: \(lid.state))")
