@@ -8,9 +8,9 @@ final class AppModel: ObservableObject {
     @Published var controllers: [DisplayController] = []
     @Published var brightnessKeysEnabled = false
     @Published var launchAtLogin = false
-    /// Off by default: the menu bar icon then shows only while the lid is closed.
-    @Published var alwaysShowInMenuBar = false
-    /// False on desktop Macs, where the menu bar option has nothing to do with a lid.
+    /// Show in Menu Bar. While the Lid Is Closed by default; removing the icon chooses Never.
+    @Published var menuBarIcon: MenuBarIconMode = .whileLidClosed
+    /// False on desktop Macs, where the menu bar choice has nothing to do with a lid.
     @Published var hasLid = true
     /// On by default: shaking the pointer brings a display dimmed to 20% or lower back to 50%.
     @Published var shakeToBrighten = true
@@ -20,6 +20,12 @@ final class AppModel: ObservableObject {
     /// The display whose Display Info page is showing, or nil for the main page.
     @Published var infoDisplay: DisplayController?
 
+    /// The choice the window shows. Without a lid, While the Lid Is Closed never shows the icon,
+    /// so it reads as Never.
+    var menuBarIconChoice: MenuBarIconMode {
+        !hasLid && menuBarIcon == .whileLidClosed ? .never : menuBarIcon
+    }
+
     func showInfo(for controller: DisplayController?) {
         withAnimation(.easeInOut(duration: 0.2)) { infoDisplay = controller }
     }
@@ -28,7 +34,7 @@ final class AppModel: ObservableObject {
 /// What the window asks the app to do.
 struct ControlsActions {
     var setLaunchAtLogin: (Bool) -> Void
-    var setAlwaysShowInMenuBar: (Bool) -> Void
+    var setMenuBarIcon: (MenuBarIconMode) -> Void
     var setShakeToBrighten: (Bool) -> Void
     var setAutomaticUpdateChecks: (Bool) -> Void
     var enableBrightnessKeys: () -> Void
@@ -68,11 +74,18 @@ struct ControlsView: View {
                 }
                 Section {
                     Toggle("Launch at Login", isOn: Binding(get: { model.launchAtLogin }, set: actions.setLaunchAtLogin))
-                    Toggle(isOn: Binding(get: { model.alwaysShowInMenuBar }, set: actions.setAlwaysShowInMenuBar)) {
-                        Text(model.hasLid ? "Always Show in Menu Bar" : "Show in Menu Bar")
-                        Text(model.hasLid
-                            ? "When this is off, the icon appears only while the lid is closed."
-                            : "A brightness slider for each display, one click away.")
+                    Picker(selection: Binding(get: { model.menuBarIconChoice }, set: actions.setMenuBarIcon)) {
+                        Text("Always").tag(MenuBarIconMode.always)
+                        if model.hasLid {
+                            Text("While the Lid Is Closed").tag(MenuBarIconMode.whileLidClosed)
+                        }
+                        Text("Never").tag(MenuBarIconMode.never)
+                    } label: {
+                        Text("Show in Menu Bar")
+                        // Allow in the Menu Bar belongs to macOS: no app can read or change it.
+                        if model.menuBarIconChoice != .never {
+                            Text("If the icon does not appear, allow Candela in [Menu Bar settings](x-apple.systempreferences:com.apple.ControlCenter-Settings.extension).")
+                        }
                     }
                     Toggle("Check for Updates Automatically",
                            isOn: Binding(get: { model.checksForUpdatesAutomatically }, set: actions.setAutomaticUpdateChecks))
