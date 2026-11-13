@@ -26,8 +26,8 @@
 - **Shake to find the pointer**: when the pointer is lost on a display dimmed far down, shake
   it. A display at 20% or lower comes back to 50%, so the pointer is easy to see again.
 - **Stays out of the way**: no Dock icon, and no menu bar icon until you need one. While a
-  MacBook's lid is closed, its brightness keys are out of reach, so a sun in the menu bar offers a
-  brightness slider for each display. **Always Show in Menu Bar** keeps it there.
+  MacBook's lid is closed, its brightness keys are out of reach, so a sun in the menu bar offers
+  each display's controls. **Always Show in Menu Bar** keeps it there.
 - **Display Info**, a page in the same window: vendor, model, serial number, manufacture date,
   size, native resolution and refresh range decoded from the EDID, plus connection type,
   DDC/CI status and the monitor's full capability list. One click copies a report.
@@ -95,8 +95,10 @@ starts at login it stays in the background without opening the window.
 
 With the lid closed, the brightness keys on a MacBook's keyboard are out of reach, and an
 external keyboard may have none. So while the lid is closed, Candela shows a sun in the menu bar.
-Click it for a brightness slider for each external display, or choose **Open Candela** for the
-window. The icon goes away when you open the lid.
+Click it for the same controls as in the window: for each external display a slider for
+**Brightness** and, when the monitor offers them, **Contrast**, **Saturation** and **Volume**,
+plus its **Picture Mode** and **Color Preset** choices. **Open Candela** opens the window. The
+icon goes away when you open the lid.
 
 To keep the icon in the menu bar all the time, turn on **Always Show in Menu Bar** in the window.
 It is off by default. On a Mac without a lid, such as a Mac mini, the option is called
