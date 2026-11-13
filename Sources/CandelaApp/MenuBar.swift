@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 
 /// Candela's menu bar icon: a brightness slider for each external display, and the way to the
 /// window for everything else. It shows while the lid is closed, when the brightness keys on the
@@ -35,7 +36,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
     // MARK: NSMenuDelegate
 
-    /// Built each time it opens, so it lists the displays connected now at their current levels.
+    /// Built each time it opens, so it lists the displays connected now.
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
         let displays = controllers()
@@ -45,10 +46,10 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             menu.addItem(item)
         }
         for controller in displays {
+            let row = NSHostingView(rootView: BrightnessMenuRow(controller: controller))
+            row.frame.size = row.fittingSize
             let item = NSMenuItem()
-            item.view = BrightnessRow(name: controller.name, value: controller.brightness) { [weak controller] level in
-                controller?.setBrightness(level)
-            }
+            item.view = row
             menu.addItem(item)
         }
         menu.addItem(.separator())
@@ -62,53 +63,66 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     }
 }
 
-/// The display's name and level above a brightness slider (0 to 100), as a menu item view.
-private final class BrightnessRow: NSView {
-    private static let width: CGFloat = 280
-    private static let inset: CGFloat = 14
+/// The display's name and level above the system's own brightness slider, as a menu item view.
+private struct BrightnessMenuRow: View {
+    @ObservedObject var controller: DisplayController
 
-    private let slider: NSSlider
-    private let valueLabel = NSTextField(labelWithString: "")
-    private let onChange: (Double) -> Void
-
-    init(name: String, value: Double, onChange: @escaping (Double) -> Void) {
-        self.onChange = onChange
-        slider = MenuSlider(value: value, minValue: 0, maxValue: 100, target: nil, action: nil)
-        super.init(frame: NSRect(x: 0, y: 0, width: Self.width, height: 50))
-        let inset = Self.inset
-
-        let title = NSTextField(labelWithString: name)
-        title.font = .systemFont(ofSize: 13, weight: .semibold)
-        title.lineBreakMode = .byTruncatingTail
-        title.frame = NSRect(x: inset, y: 29, width: Self.width - 2 * inset - 50, height: 17)
-
-        valueLabel.font = .monospacedDigitSystemFont(ofSize: 11, weight: .regular)
-        valueLabel.textColor = .secondaryLabelColor
-        valueLabel.alignment = .right
-        valueLabel.frame = NSRect(x: Self.width - inset - 44, y: 30, width: 44, height: 14)
-
-        let icon = NSImageView(frame: NSRect(x: inset, y: 6, width: 16, height: 16))
-        icon.image = NSImage(systemSymbolName: "sun.max", accessibilityDescription: nil)
-        icon.contentTintColor = .secondaryLabelColor
-
-        slider.frame = NSRect(x: inset + 24, y: 3, width: Self.width - 2 * inset - 24, height: 22)
-        slider.isContinuous = true
-        slider.target = self
-        slider.action = #selector(changed)
-        slider.setAccessibilityLabel("\(name) brightness")
-
-        [title, valueLabel, icon, slider].forEach(addSubview)
-        updateValueLabel()
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(controller.name)
+                    .font(.system(size: 13, weight: .semibold))
+                    .lineLimit(1)
+                Spacer()
+                Text("\(Int(controller.brightness.rounded()))%")
+                    .font(.system(size: 11).monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+            HStack(spacing: 8) {
+                Image(systemName: "sun.max")
+                    .foregroundStyle(.secondary)
+                Slider(value: Binding(get: { controller.brightness }, set: { controller.setBrightness($0) }),
+                       in: 0 ... 100,
+                       onEditingChanged: { pressed in
+                           if pressed { MenuDrag.forwardRest(to: NSApp.currentEvent?.window) }
+                       })
+                    .labelsHidden()
+                    .accessibilityLabel("\(controller.name) brightness")
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 6)
+        .frame(width: 280)
+        // Opening a menu does not make Candela the active app, and the slider would draw its
+        // filled part gray as if it were in a window in the background.
+        .environment(\.controlActiveState, .key)
     }
+}
 
-    required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+/// In a menu, AppKit stops passing a pressed slider the drag once the pointer leaves its menu
+/// item, and the slider never even sees the button come up, so its knob stays pressed. Once a
+/// slider starts tracking, this hands the rest of the drag to the menu's window, the way an
+/// ordinary window delivers it, until the button is released.
+private enum MenuDrag {
+    private static var isForwarding = false
 
-    @objc private func changed() {
-        updateValueLabel()
-        onChange(slider.doubleValue)
-    }
-
-    private func updateValueLabel() {
-        valueLabel.stringValue = "\(Int(slider.doubleValue.rounded()))%"
+    static func forwardRest(to window: NSWindow?) {
+        guard let window, !isForwarding else { return }
+        // After the press has been handled, while the menu is still open.
+        DispatchQueue.main.async {
+            isForwarding = true
+            defer { isForwarding = false }
+            while true {
+                guard let event = NSApp.nextEvent(matching: [.leftMouseDragged, .leftMouseUp],
+                                                  until: Date(timeIntervalSinceNow: 0.05),
+                                                  inMode: .eventTracking, dequeue: true) else {
+                    // Nothing queued: done if the button is already up, otherwise keep waiting.
+                    if NSEvent.pressedMouseButtons & 1 == 0 { return }
+                    continue
+                }
+                window.sendEvent(event)
+                if event.type == .leftMouseUp { return }
+            }
+        }
     }
 }
