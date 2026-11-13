@@ -9,8 +9,9 @@ All notable changes are documented here. The format follows
 ### Added
 - While a MacBook's lid is closed, Candela shows a sun in the menu bar with each external
   display's controls, the same as in the window (#22), since the brightness keys on the
-  MacBook's keyboard are out of reach. **Always Show in Menu Bar** in the window keeps the icon there with the lid open too;
-  it is off by default (#15).
+  MacBook's keyboard are out of reach. **Show in Menu Bar** in the window chooses Always, While
+  the Lid Is Closed (the default) or Never; removing the icon from the menu bar chooses Never
+  (#15, #23).
 - Shake the pointer to find it on a dark display: a display dimmed to 20% or lower comes back
   to 50%, with the brightness indicator. **Shake Pointer to Brighten** in the window turns it
   off; it is on by default and needs no permission (#16).

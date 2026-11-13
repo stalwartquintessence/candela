@@ -27,7 +27,7 @@
   it. A display at 20% or lower comes back to 50%, so the pointer is easy to see again.
 - **Stays out of the way**: no Dock icon, and no menu bar icon until you need one. While a
   MacBook's lid is closed, its brightness keys are out of reach, so a sun in the menu bar offers
-  each display's controls. **Always Show in Menu Bar** keeps it there.
+  each display's controls. **Show in Menu Bar** can also keep it there, or never show it.
 - **Display Info**, a page in the same window: vendor, model, serial number, manufacture date,
   size, native resolution and refresh range decoded from the EDID, plus connection type,
   DDC/CI status and the monitor's full capability list. One click copies a report.
@@ -86,7 +86,7 @@ runs brings the window back. Each external display gets its own section:
 - **Display Info** opens the details as a page of the same window; **Back** returns.
   **Check DDC/CI Again** re-tests the connection, for example after you change cables.
 
-The window also has **Launch at Login**, **Always Show in Menu Bar**, **Check for Updates
+The window also has **Launch at Login**, **Show in Menu Bar**, **Check for Updates
 Automatically**, **Shake Pointer to Brighten** and the brightness key permission. Closing the
 window keeps Candela running; to quit it, press **⌘Q** while the window is open. When Candela
 starts at login it stays in the background without opening the window.
@@ -100,9 +100,12 @@ Click it for the same controls as in the window: for each external display a sli
 plus its **Picture Mode** and **Color Preset** choices. **Open Candela** opens the window. The
 icon goes away when you open the lid.
 
-To keep the icon in the menu bar all the time, turn on **Always Show in Menu Bar** in the window.
-It is off by default. On a Mac without a lid, such as a Mac mini, the option is called
-**Show in Menu Bar**.
+**Show in Menu Bar** in the window chooses when the icon appears: **Always**, **While the Lid Is
+Closed** (the default) or **Never**. On a Mac without a lid, such as a Mac mini, the choice is
+**Always** or **Never**. Removing the icon from the menu bar (hold ⌘ and drag it out) sets
+**Never**; choose another option to bring it back. If the icon does not appear although the
+choice is not Never, macOS is hiding it: turn on Candela under **System Settings > Menu Bar >
+Allow in the Menu Bar**. The window links there.
 
 ### Shake to find the pointer
 
