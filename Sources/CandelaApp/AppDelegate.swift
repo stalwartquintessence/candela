@@ -306,12 +306,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Returns true when the key was handled (and should not reach macOS).
-    private func handleKey(_ key: MediaKeyTap.Key, fine: Bool, isDown: Bool) -> Bool {
+    private func handleKey(_ key: BrightnessKey, fine: Bool, isDown: Bool) -> Bool {
         guard let (screen, controller) = displayUnderPointer() else {
             return false // the built-in display: let macOS handle it
         }
         if isDown {
-            let level = BrightnessMath.step(from: controller.brightness, up: key == .brightnessUp, fine: fine)
+            let level = BrightnessMath.step(from: controller.brightness, up: key == .up, fine: fine)
             controller.setBrightness(level)
             hud.show(level: level, name: controller.name, on: screen)
         }
