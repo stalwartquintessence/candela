@@ -101,13 +101,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return event.paramDescriptor(forKeyword: AEKeyword(keyAEPropData))?.enumCodeValue == OSType(keyAELaunchedAsLogInItem)
     }
 
-    /// The menu bar stays hidden for a background app, but its key equivalents still work:
-    /// Command-W closes a window and Command-Q quits.
+    /// The menu bar shows Candela's menus while its window is open. In the background, the menus
+    /// are hidden but their key equivalents still work: Command-W closes a window and Command-Q
+    /// quits.
     private static func makeMainMenu() -> NSMenu {
         let appMenu = NSMenu()
+        appMenu.addItem(withTitle: "About Candela", action: #selector(AppDelegate.aboutCandela(_:)), keyEquivalent: "")
+        appMenu.addItem(withTitle: "Check for Updates...", action: #selector(AppDelegate.checkForUpdates(_:)), keyEquivalent: "")
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: "Hide Candela", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        let hideOthers = appMenu.addItem(withTitle: "Hide Others",
+                                         action: #selector(NSApplication.hideOtherApplications(_:)), keyEquivalent: "h")
+        hideOthers.keyEquivalentModifierMask = [.command, .option]
+        appMenu.addItem(withTitle: "Show All", action: #selector(NSApplication.unhideAllApplications(_:)), keyEquivalent: "")
+        appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Quit Candela", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+
         let windowMenu = NSMenu(title: "Window")
         windowMenu.addItem(withTitle: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        // AppKit lists the open windows below this, as in other apps.
+        NSApp.windowsMenu = windowMenu
 
         let main = NSMenu()
         for submenu in [appMenu, windowMenu] {
@@ -116,6 +129,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             main.addItem(item)
         }
         return main
+    }
+
+    @objc private func aboutCandela(_ sender: Any?) { showAbout() }
+
+    @objc private func checkForUpdates(_ sender: Any?) { updater.checkNow() }
+
+    @objc func validateMenuItem(_ item: NSMenuItem) -> Bool {
+        item.action == #selector(checkForUpdates(_:)) ? model.canCheckForUpdates : true
     }
 
     // MARK: Window
