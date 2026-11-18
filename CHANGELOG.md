@@ -7,8 +7,9 @@ All notable changes are documented here. The format follows
 ## [Unreleased]
 
 ### Added
-- While a MacBook's lid is closed, Candela shows a sun in the menu bar with each external
-  display's controls, the same as in the window (#22), since the brightness keys on the
+- While a MacBook's lid is closed, Candela shows a sun in the menu bar. It opens a panel like
+  the one under Sound, with each external display's controls, the same as in the window (#22,
+  #27), since the brightness keys on the
   MacBook's keyboard are out of reach. **Show in Menu Bar** in the window chooses Always, While
   the Lid Is Closed (the default) or Never; removing the icon from the menu bar chooses Never
   (#15, #23).

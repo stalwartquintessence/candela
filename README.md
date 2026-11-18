@@ -95,7 +95,7 @@ starts at login it stays in the background without opening the window.
 
 With the lid closed, the brightness keys on a MacBook's keyboard are out of reach, and an
 external keyboard may have none. So while the lid is closed, Candela shows a sun in the menu bar.
-Click it for the same controls as in the window: for each external display a slider for
+Click it for a panel like the one under Sound, with the same controls as in the window: for each external display a slider for
 **Brightness** and, when the monitor offers them, **Contrast**, **Saturation** and **Volume**,
 plus its **Picture Mode** and **Color Preset** choices. **Open Candela** opens the window. The
 icon goes away when you open the lid.
