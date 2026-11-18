@@ -18,6 +18,8 @@ All notable changes are documented here. The format follows
 ### Fixed
 - A dimmed display no longer flashes at full brightness for a second or so when the lid closes
   or the displays change: dimming now returns as soon as macOS has reset the display.
+- The brightness keys of an external Apple keyboard, and F14 and F15 on a full-size one, now
+  change the display under the pointer instead of always the built-in display (#24).
 
 ### Changed
 - The Candela window opens taller, so its rows fit without scrolling. A window resized before
