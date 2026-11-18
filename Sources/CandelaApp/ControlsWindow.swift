@@ -196,6 +196,28 @@ enum ControlSymbol {
         default: return "slider.horizontal.3"
         }
     }
+
+    /// The symbols at the low and high ends of a slider in the menu bar panel, like the quiet
+    /// and loud speakers around the volume slider under Sound.
+    static func low(for code: UInt8) -> String {
+        switch code {
+        case MCCS.brightness: return "sun.min.fill"
+        case MCCS.contrast: return "circle.lefthalf.filled"
+        case MCCS.saturation: return "drop"
+        case MCCS.volume: return "speaker.fill"
+        default: return name(for: code)
+        }
+    }
+
+    static func high(for code: UInt8) -> String {
+        switch code {
+        case MCCS.brightness: return "sun.max.fill"
+        case MCCS.contrast: return "circle.righthalf.filled"
+        case MCCS.saturation: return "drop.fill"
+        case MCCS.volume: return "speaker.wave.3.fill"
+        default: return name(for: code)
+        }
+    }
 }
 
 /// Icon, title, a 0 to 100 slider and its value.
