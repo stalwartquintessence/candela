@@ -1,4 +1,5 @@
 import AppKit
+import MonitorCore
 import SwiftUI
 
 /// Candela's menu bar icon: a brightness slider for each external display, and the way to the
@@ -45,12 +46,17 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             item.isEnabled = false
             menu.addItem(item)
         }
-        for controller in displays {
-            let row = NSHostingView(rootView: BrightnessMenuRow(controller: controller))
-            row.frame.size = row.fittingSize
+        // The same controls as the display's section in the window, from the same plan.
+        for (index, controller) in displays.enumerated() {
+            if index > 0 { menu.addItem(.separator()) }
+            let sliders = NSHostingView(rootView: DisplayMenuSliders(controller: controller))
+            sliders.frame.size = sliders.fittingSize
             let item = NSMenuItem()
-            item.view = row
+            item.view = sliders
             menu.addItem(item)
+            for picker in controller.plan.pickers {
+                menu.addItem(pickerItem(picker, controller: controller))
+            }
         }
         menu.addItem(.separator())
         let open = NSMenuItem(title: "Open Candela", action: #selector(openCandela), keyEquivalent: "")
@@ -58,44 +64,95 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         menu.addItem(open)
     }
 
+    /// One of the monitor's own preset modes (Picture Mode, Color Preset) as a submenu of the
+    /// choices it lists, with a checkmark on the current one.
+    private func pickerItem(_ picker: ControlPlan.Picker, controller: DisplayController) -> NSMenuItem {
+        let choices = NSMenu()
+        let current = controller.currentValue(of: picker.code)
+        for value in picker.values {
+            let choice = NSMenuItem(title: MCCS.valueName(code: picker.code, value: value),
+                                    action: #selector(choose(_:)), keyEquivalent: "")
+            choice.target = self
+            choice.representedObject = PickerChoice(controller: controller, code: picker.code, value: value)
+            choice.state = MCCS.isSameChoice(current, value) ? .on : .off
+            choices.addItem(choice)
+        }
+        let item = NSMenuItem(title: MCCS.name(of: picker.code), action: nil, keyEquivalent: "")
+        item.submenu = choices
+        return item
+    }
+
+    @objc private func choose(_ sender: NSMenuItem) {
+        guard let choice = sender.representedObject as? PickerChoice else { return }
+        choice.controller.set(code: choice.code, value: choice.value)
+    }
+
     @objc private func openCandela() {
         openWindow()
     }
 }
 
-/// The display's name and level above the system's own brightness slider, as a menu item view.
-private struct BrightnessMenuRow: View {
+/// One choice in a preset submenu.
+private final class PickerChoice: NSObject {
+    let controller: DisplayController
+    let code: UInt8
+    let value: UInt16
+
+    init(controller: DisplayController, code: UInt8, value: UInt16) {
+        self.controller = controller
+        self.code = code
+        self.value = value
+    }
+}
+
+/// The display's name above a system slider for Brightness and for each level control the
+/// window shows (Contrast, Saturation, Volume), as one menu item view.
+private struct DisplayMenuSliders: View {
     @ObservedObject var controller: DisplayController
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(controller.name)
-                    .font(.system(size: 13, weight: .semibold))
-                    .lineLimit(1)
-                Spacer()
-                Text("\(Int(controller.brightness.rounded()))%")
-                    .font(.system(size: 11).monospacedDigit())
-                    .foregroundStyle(.secondary)
-            }
-            HStack(spacing: 8) {
-                Image(systemName: "sun.max")
-                    .foregroundStyle(.secondary)
-                Slider(value: Binding(get: { controller.brightness }, set: { controller.setBrightness($0) }),
-                       in: 0 ... 100,
-                       onEditingChanged: { pressed in
-                           if pressed { MenuDrag.forwardRest(to: NSApp.currentEvent?.window) }
-                       })
-                    .labelsHidden()
-                    .accessibilityLabel("\(controller.name) brightness")
+            Text(controller.name)
+                .font(.system(size: 13, weight: .semibold))
+                .lineLimit(1)
+            MenuLevelRow(display: controller.name, code: MCCS.brightness,
+                         value: Binding(get: { controller.brightness }, set: { controller.setBrightness($0) }))
+            ForEach(controller.plan.sliders, id: \.self) { code in
+                MenuLevelRow(display: controller.name, code: code,
+                             value: Binding(get: { controller.percent(of: code) },
+                                            set: { controller.set(code: code, percent: $0) }))
             }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 6)
-        .frame(width: 280)
-        // Opening a menu does not make Candela the active app, and the slider would draw its
-        // filled part gray as if it were in a window in the background.
+        .frame(width: 300, alignment: .leading)
+        // Opening a menu does not make Candela the active app, and the sliders would draw their
+        // filled part gray as if they were in a window in the background.
         .environment(\.controlActiveState, .key)
+    }
+}
+
+/// The control's symbol, the system's own slider (0 to 100) and the level.
+private struct MenuLevelRow: View {
+    let display: String
+    let code: UInt8
+    @Binding var value: Double
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: ControlSymbol.name(for: code))
+                .foregroundStyle(.secondary)
+                .frame(width: 18)
+            Slider(value: $value, in: 0 ... 100, onEditingChanged: { pressed in
+                if pressed { MenuDrag.forwardRest(to: NSApp.currentEvent?.window) }
+            })
+            .labelsHidden()
+            .accessibilityLabel("\(display) \(MCCS.name(of: code))")
+            Text("\(Int(value.rounded()))%")
+                .font(.system(size: 11).monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(width: 34, alignment: .trailing)
+        }
     }
 }
 

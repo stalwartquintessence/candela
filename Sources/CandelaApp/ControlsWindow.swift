@@ -120,10 +120,10 @@ private struct DisplaySection: View {
     var body: some View {
         let plan = controller.plan
         Section {
-            LevelRow(title: "Brightness", symbol: "sun.max",
+            LevelRow(title: "Brightness", symbol: ControlSymbol.name(for: MCCS.brightness),
                      value: Binding(get: { controller.brightness }, set: { controller.setBrightness($0) }))
             ForEach(plan.sliders, id: \.self) { code in
-                LevelRow(title: MCCS.name(of: code), symbol: Self.symbol(for: code),
+                LevelRow(title: MCCS.name(of: code), symbol: ControlSymbol.name(for: code),
                          value: Binding(get: { controller.percent(of: code) }, set: { controller.set(code: code, percent: $0) }))
             }
             // The monitor's own preset modes, exactly as it lists them.
@@ -170,9 +170,13 @@ private struct DisplaySection: View {
                 if let value { controller.set(code: picker.code, value: value) }
             })
     }
+}
 
-    private static func symbol(for code: UInt8) -> String {
+/// The SF Symbol for each level control, shared by the window and the menu bar menu.
+enum ControlSymbol {
+    static func name(for code: UInt8) -> String {
         switch code {
+        case MCCS.brightness: return "sun.max"
         case MCCS.contrast: return "circle.lefthalf.filled"
         case MCCS.saturation: return "drop.halffull"
         case MCCS.volume: return "speaker.wave.2"
