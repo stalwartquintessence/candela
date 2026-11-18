@@ -25,9 +25,9 @@
   of macOS 26 appears at the top right of that display. Hold Option+Shift for fine steps.
 - **Shake to find the pointer**: when the pointer is lost on a display dimmed far down, shake
   it. A display at 20% or lower comes back to 50%, so the pointer is easy to see again.
-- **Stays out of the way**: no Dock icon, and no menu bar icon until you need one. While a
-  MacBook's lid is closed, its brightness keys are out of reach, so a sun in the menu bar offers
-  each display's controls. **Show in Menu Bar** can also keep it there, or never show it.
+- **Stays out of the way**: a Dock icon only while its window is open, and no menu bar icon
+  until you need one. While a MacBook's lid is closed, its brightness keys are out of reach, so
+  a sun in the menu bar offers each display's controls. **Show in Menu Bar** can also keep it there, or never show it.
 - **Display Info**, a page in the same window: vendor, model, serial number, manufacture date,
   size, native resolution and refresh range decoded from the EDID, plus connection type,
   DDC/CI status and the monitor's full capability list. One click copies a report.
@@ -75,8 +75,9 @@ Intel Macs are not supported: they use a different I2C interface.
 
 ## Using Candela
 
-Candela has no Dock icon. It runs in the background, and the brightness keys adjust the display
-under the pointer.
+Candela runs in the background, and the brightness keys adjust the display under the pointer.
+While its window is open, it shows in the Dock and in the Command-Tab switcher like any app;
+closing the window takes it back to the background.
 
 Open Candela from Spotlight, Finder or Launchpad to see its window; opening it again while it
 runs brings the window back. Each external display gets its own section:

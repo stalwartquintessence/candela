@@ -280,9 +280,18 @@ final class ControlsWindowController: NSWindowController, NSWindowDelegate {
     /// Double-clicking the title bar zooms windows by default; with no zoom button it should not.
     func windowShouldZoom(_ window: NSWindow, toFrame newFrame: NSRect) -> Bool { false }
 
+    /// While the window is open, Candela is an ordinary app: it has a Dock icon, shows in the
+    /// Command-Tab switcher and has its menu in the menu bar, so the window can be found again
+    /// like any other. Closing the window takes Candela back to the background, like System
+    /// Settings.
     func present() {
+        NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         showWindow(nil)
         window?.makeKeyAndOrderFront(nil)
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        NSApp.setActivationPolicy(.accessory)
     }
 }
