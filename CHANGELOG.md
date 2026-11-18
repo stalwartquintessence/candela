@@ -7,6 +7,9 @@ All notable changes are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- While the Candela window is open, Candela shows in the Dock and the Command-Tab switcher, with
+  its menu in the menu bar (About Candela, Check for Updates, Hide, Quit). Closing the window
+  takes it back to the background (#32).
 - While a MacBook's lid is closed, Candela shows a sun in the menu bar. It opens a panel like
   the one under Sound, with each external display's controls, the same as in the window (#22,
   #27), since the brightness keys on the
