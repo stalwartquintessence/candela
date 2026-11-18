@@ -8,12 +8,18 @@ import SwiftUI
 final class MenuBarController: NSObject, NSMenuDelegate {
     private let controllers: () -> [DisplayController]
     private let openWindow: () -> Void
+    private let removedByUser: () -> Void
     /// Made the first time the icon shows, then only hidden and shown again, so it keeps its place.
     private var statusItem: NSStatusItem?
+    private var visibility: NSKeyValueObservation?
+    /// True while Candela itself shows or hides the icon, so only the user's removal is reported.
+    private var isChangingVisibility = false
 
-    init(controllers: @escaping () -> [DisplayController], openWindow: @escaping () -> Void) {
+    init(controllers: @escaping () -> [DisplayController], openWindow: @escaping () -> Void,
+         removedByUser: @escaping () -> Void) {
         self.controllers = controllers
         self.openWindow = openWindow
+        self.removedByUser = removedByUser
     }
 
     var isVisible: Bool { statusItem?.isVisible == true }
@@ -21,7 +27,9 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     func setVisible(_ visible: Bool) {
         if visible, statusItem == nil { statusItem = makeStatusItem() }
         if !visible { statusItem?.menu?.cancelTracking() }
+        isChangingVisibility = true
         statusItem?.isVisible = visible
+        isChangingVisibility = false
     }
 
     private func makeStatusItem() -> NSStatusItem {
@@ -32,6 +40,13 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         let menu = NSMenu()
         menu.delegate = self
         item.menu = menu
+        // Command-dragging the icon out of the menu bar removes it, like Apple's own items.
+        // AppKit then sets isVisible to false, and Candela takes that as the user's choice.
+        item.behavior = .removalAllowed
+        visibility = item.observe(\.isVisible) { [weak self] item, _ in
+            guard let self, !self.isChangingVisibility, !item.isVisible else { return }
+            self.removedByUser()
+        }
         return item
     }
 

@@ -24,7 +24,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let updater = Updater()
     private lazy var menuBar = MenuBarController(
         controllers: { [weak self] in self?.controllers ?? [] },
-        openWindow: { [weak self] in self?.showControls() })
+        openWindow: { [weak self] in self?.showControls() },
+        removedByUser: { [weak self] in self?.menuBarIconRemoved() })
     private var controlsWindow: ControlsWindowController?
     private var accessibilityTimer: Timer?
     private var lastTrusted: Bool?
@@ -60,7 +61,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         lid.start()
         model.hasLid = lid.state != .noLid
-        model.alwaysShowInMenuBar = UserDefaults.standard.bool(forKey: Self.alwaysShowInMenuBarKey)
+        model.menuBarIcon = UserDefaults.standard.string(forKey: Self.menuBarIconKey)
+            .flatMap(MenuBarIconMode.init(rawValue:)) ?? .whileLidClosed
         updateMenuBarIcon()
 
         keyTap.handler = { [weak self] key, fine, isDown in
@@ -122,7 +124,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if controlsWindow == nil {
             controlsWindow = ControlsWindowController(model: model, actions: ControlsActions(
                 setLaunchAtLogin: { [weak self] on in self?.setLaunchAtLogin(on) },
-                setAlwaysShowInMenuBar: { [weak self] on in self?.setAlwaysShowInMenuBar(on) },
+                setMenuBarIcon: { [weak self] mode in self?.setMenuBarIcon(mode) },
                 setShakeToBrighten: { [weak self] on in self?.setShakeToBrighten(on) },
                 setAutomaticUpdateChecks: { [weak self] on in
                     self?.updater.setChecksAutomatically(on)
@@ -263,16 +265,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: Menu bar
 
-    private static let alwaysShowInMenuBarKey = "alwaysShowInMenuBar"
+    private static let menuBarIconKey = "menuBarIcon"
 
-    private func setAlwaysShowInMenuBar(_ on: Bool) {
-        UserDefaults.standard.set(on, forKey: Self.alwaysShowInMenuBarKey)
-        model.alwaysShowInMenuBar = on
+    private func setMenuBarIcon(_ mode: MenuBarIconMode) {
+        UserDefaults.standard.set(mode.rawValue, forKey: Self.menuBarIconKey)
+        model.menuBarIcon = mode
         updateMenuBarIcon()
     }
 
+    /// The user Command-dragged the icon out of the menu bar: they do not want it, not even
+    /// while the lid is closed, until they choose otherwise in the window.
+    private func menuBarIconRemoved() {
+        Log.app("menu bar icon removed by the user: Show in Menu Bar is now Never")
+        setMenuBarIcon(.never)
+    }
+
     private func updateMenuBarIcon() {
-        let shown = MenuBarIcon.isShown(always: model.alwaysShowInMenuBar, lid: lid.state)
+        let shown = MenuBarIcon.isShown(mode: model.menuBarIcon, lid: lid.state)
         guard shown != menuBar.isVisible else { return }
         menuBar.setVisible(shown)
         Log.app("menu bar icon \(shown ? "shown" : "hidden") (lid: \(lid.state))")

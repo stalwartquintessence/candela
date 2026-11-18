@@ -17,10 +17,22 @@ public enum LidState: Equatable, Sendable {
     }
 }
 
-/// With the lid closed, the brightness keys on the MacBook's keyboard are out of reach, so the
-/// icon appears on its own. Otherwise it shows only when the user asks for it.
+/// Where the user wants Candela's icon: the window's Show in Menu Bar choice.
+public enum MenuBarIconMode: String, CaseIterable, Sendable {
+    case always
+    /// The default. With the lid closed, the brightness keys on the MacBook's keyboard are out
+    /// of reach, so the icon appears on its own.
+    case whileLidClosed
+    /// Also what removing the icon from the menu bar chooses.
+    case never
+}
+
 public enum MenuBarIcon {
-    public static func isShown(always: Bool, lid: LidState) -> Bool {
-        always || lid == .closed
+    public static func isShown(mode: MenuBarIconMode, lid: LidState) -> Bool {
+        switch mode {
+        case .always: return true
+        case .whileLidClosed: return lid == .closed
+        case .never: return false
+        }
     }
 }
