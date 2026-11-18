@@ -42,6 +42,20 @@ for RPATH in $(otool -l "$APP/Contents/MacOS/$APP_NAME" | awk '$1 == "path" { pr
     esac
 done
 
+# macOS draws an app's controls in the style of the SDK the app says it was built with: an app
+# built for an older macOS keeps the older look. Some SwiftPM versions (Swift 6.4) record the
+# minimum macOS (13.0) in place of the SDK, which shows macOS 13 style sliders and switches on
+# macOS 26 and later. Record the SDK the build really used.
+SDK_VERSION=$(xcrun --show-sdk-version)
+for BINARY in "$APP/Contents/MacOS/$APP_NAME" "$APP/Contents/MacOS/$CLI_NAME"; do
+    RECORDED=$(vtool -show-build "$BINARY" | awk '$1 == "sdk" { print $2 }')
+    if [ "$RECORDED" != "$SDK_VERSION" ]; then
+        MINOS=$(vtool -show-build "$BINARY" | awk '$1 == "minos" { print $2 }')
+        vtool -set-build-version macos "$MINOS" "$SDK_VERSION" -replace -output "$BINARY" "$BINARY"
+        echo "==> $(basename "$BINARY"): recorded SDK $RECORDED corrected to $SDK_VERSION"
+    fi
+done
+
 sed -e "s|__APP_NAME__|$APP_NAME|g" \
     -e "s|__BUNDLE_ID__|$BUNDLE_ID|g" \
     -e "s|__VERSION__|$VERSION|g" \
