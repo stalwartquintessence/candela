@@ -186,6 +186,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controllers = next
         fresh.forEach { $0.probe() }
         Log.app("displays: \(controllers.map(\.name).joined(separator: ", ")) (\(fresh.count) new)")
+        menuBar.displaysChanged()
     }
 
     private static func sameConnection(_ a: ExternalDisplay, _ b: ExternalDisplay) -> Bool {
