@@ -6,16 +6,17 @@ All notable changes are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-18
+
 ### Added
 - While the Candela window is open, Candela shows in the Dock and the Command-Tab switcher, with
   its menu in the menu bar (About Candela, Check for Updates, Hide, Quit). Closing the window
   takes it back to the background (#32).
 - While a MacBook's lid is closed, Candela shows a sun in the menu bar. It opens a panel like
   the one under Sound, with each external display's controls, the same as in the window (#22,
-  #27), since the brightness keys on the
-  MacBook's keyboard are out of reach. **Show in Menu Bar** in the window chooses Always, While
-  the Lid Is Closed (the default) or Never; removing the icon from the menu bar chooses Never
-  (#15, #23).
+  #27), since the brightness keys on the MacBook's keyboard are out of reach. **Show in Menu
+  Bar** in the window chooses Always, While the Lid Is Closed (the default) or Never; removing
+  the icon from the menu bar chooses Never (#15, #23).
 - Shake the pointer to find it on a dark display: a display dimmed to 20% or lower comes back
   to 50%, with the brightness indicator. **Shake Pointer to Brighten** in the window turns it
   off; it is on by default and needs no permission (#16).
@@ -29,6 +30,20 @@ All notable changes are documented here. The format follows
 ### Changed
 - The Candela window opens taller, so its rows fit without scrolling. A window resized before
   opens at the new size once.
+- The monitor's own controls over DDC/CI are now verified on real hardware: brightness,
+  contrast, Color Preset and Picture Mode on a Dell P2725DE over USB-C (#1).
+
+### Upgrading from 0.2.0
+- Choose **Check for Updates...** in the Candela window, or wait for the daily check if it is
+  on. The update keeps your settings and the brightness key permission.
+
+### Known limitations
+- Saturation and volume over DDC/CI are not yet verified on a monitor that offers them. Reports
+  with `candelactl info` output are welcome.
+- Software dimming with HDR turned on is not yet checked (#6), and two identical monitors
+  without a text serial may share settings (#7).
+- Builds are not notarized: the first launch needs **Open Anyway**. Updates installed from
+  inside Candela do not.
 
 ## [0.2.0] - 2026-11-09
 
