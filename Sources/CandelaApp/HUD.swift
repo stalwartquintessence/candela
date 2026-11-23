@@ -9,18 +9,23 @@ private final class SegmentBar: NSView {
     override func draw(_ dirtyRect: NSRect) {
         let gap: CGFloat = 2
         let count = Self.segments
-        let width = (bounds.width - gap * CGFloat(count - 1)) / CGFloat(count)
+        // Whole-point segments, centered, with every edge on a device pixel: fractional widths
+        // leave uneven gaps and soft edges, most visibly on a 1x display.
+        let width = ((bounds.width - gap * CGFloat(count - 1)) / CGFloat(count)).rounded(.down)
+        let start = ((bounds.width - (width * CGFloat(count) + gap * CGFloat(count - 1))) / 2).rounded(.down)
         // Snap to quarter segments so rounding in the monitor's raw value never leaves a sliver.
         let filled = (min(max(level, 0), 100) / 100 * Double(count) * 4).rounded() / 4
         for i in 0 ..< count {
-            let rect = NSRect(x: CGFloat(i) * (width + gap), y: 0, width: width, height: bounds.height)
+            let rect = backingAlignedRect(NSRect(x: start + CGFloat(i) * (width + gap), y: 0, width: width, height: bounds.height),
+                                          options: .alignAllEdgesNearest)
             NSColor.labelColor.withAlphaComponent(0.22).setFill()
             NSBezierPath(roundedRect: rect, xRadius: 1, yRadius: 1).fill()
             let fraction = min(1, max(0, filled - Double(i)))
             guard fraction > 0 else { continue }
             NSColor.labelColor.setFill()
-            NSBezierPath(roundedRect: NSRect(x: rect.minX, y: rect.minY, width: rect.width * CGFloat(fraction), height: rect.height),
-                         xRadius: 1, yRadius: 1).fill()
+            let part = backingAlignedRect(NSRect(x: rect.minX, y: rect.minY, width: rect.width * CGFloat(fraction), height: rect.height),
+                                          options: .alignAllEdgesNearest)
+            NSBezierPath(roundedRect: part, xRadius: 1, yRadius: 1).fill()
         }
     }
 }
