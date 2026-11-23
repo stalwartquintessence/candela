@@ -22,7 +22,9 @@
   of many Apple Silicon Macs), AirPlay and other virtual displays, by dimming the picture.
 - **Brightness keys** work on the display under the pointer, on the Mac's keyboard and on
   external Apple keyboards (F14 and F15 on a full-size one). A small indicator in the style
-  of macOS 26 appears at the top right of that display. Hold Option+Shift for fine steps.
+  of macOS 26 appears on that display, coming out of Candela's sun in the menu bar the way the
+  system's comes out of Control Center, or at the top right when the sun is not shown. Hold
+  Option+Shift for fine steps.
 - **Shake to find the pointer**: when the pointer is lost on a display dimmed far down, shake
   it. A display at 20% or lower comes back to 50%, so the pointer is easy to see again.
 - **Stays out of the way**: a Dock icon only while its window is open, and no menu bar icon
