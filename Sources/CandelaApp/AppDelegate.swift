@@ -44,6 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let startedAtLogin = Self.launchedAsLoginItem
 
         NSApp.mainMenu = Self.makeMainMenu()
+        hud.source = menuBar
 
         NotificationCenter.default.addObserver(self, selector: #selector(screensChanged),
                                                name: NSApplication.didChangeScreenParametersNotification, object: nil)

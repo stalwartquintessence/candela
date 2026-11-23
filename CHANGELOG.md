@@ -6,6 +6,14 @@ All notable changes are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- The brightness indicator comes out of Candela's sun in the menu bar, like the system's comes
+  out of Control Center: the sun is highlighted and turns into a display, and the indicator
+  grows out from under it. Without the sun in the menu bar it stays at the top right (#36).
+
+### Fixed
+- The indicator's segments have even gaps and sharp edges, also on 1x displays (#36).
+
 ## [0.3.0] - 2026-11-18
 
 ### Added

@@ -1,4 +1,5 @@
 import AppKit
+import MonitorCore
 import SwiftUI
 
 /// Candela's menu bar icon: a panel with each external display's sliders and presets, and the
@@ -21,6 +22,14 @@ final class MenuBarController: NSObject {
     fileprivate let panel = MenuBarPanel()
     /// The macOS 27 session delegate, kept here because the status item holds it weakly.
     fileprivate var expandedInterface: AnyObject?
+    /// True while the brightness indicator has the icon highlighted, so only that highlight is
+    /// taken away when it goes.
+    private var highlightedForIndicator = false
+    /// Draws the icon's symbol while it turns into a display and back. The button cannot animate
+    /// a change of symbol itself.
+    private var symbolView: NSImageView?
+    /// The symbol the indicator last asked for, so a late hand-back never undoes a newer change.
+    private var showsDisplaySymbol = false
 
     init(controllers: @escaping () -> [DisplayController], openWindow: @escaping () -> Void,
          removedByUser: @escaping () -> Void) {
@@ -35,7 +44,10 @@ final class MenuBarController: NSObject {
 
     func setVisible(_ visible: Bool) {
         if visible, statusItem == nil { statusItem = makeStatusItem() }
-        if !visible { dismissPanel() }
+        if !visible {
+            dismissPanel()
+            resetIndicatorLook()
+        }
         isChangingVisibility = true
         statusItem?.isVisible = visible
         isChangingVisibility = false
@@ -50,7 +62,7 @@ final class MenuBarController: NSObject {
     private func makeStatusItem() -> NSStatusItem {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         item.autosaveName = "Candela"
-        item.button?.image = NSImage(systemSymbolName: "sun.max", accessibilityDescription: "Candela")
+        item.button?.image = Self.sunSymbol
         item.button?.toolTip = "Candela"
         if !useExpandedInterface(for: item) {
             item.button?.target = self
@@ -71,6 +83,8 @@ final class MenuBarController: NSObject {
 
     fileprivate func showPanel() {
         guard let button = statusItem?.button else { return }
+        // The panel takes over the icon. Its highlight stays: the menu bar has just put it there.
+        resetIndicatorLook(unhighlight: false)
         panel.show(MenuPanelContent(displays: controllers(), openCandela: { [weak self] in
             self?.dismissPanel()
             self?.openWindow()
@@ -91,6 +105,96 @@ final class MenuBarController: NSObject {
         } else {
             showPanel()
             statusItem?.button?.highlight(true)
+        }
+    }
+}
+
+// MARK: Brightness indicator
+
+/// The brightness indicator comes out of Candela's icon, the way the system's comes out of
+/// Control Center's: the icon is highlighted and shows a display while the indicator is up.
+extension MenuBarController: IndicatorSource {
+    private static let sunSymbol = NSImage(systemSymbolName: "sun.max", accessibilityDescription: "Candela")
+    private static let displaySymbol = NSImage(systemSymbolName: "display", accessibilityDescription: "Candela")
+
+    func indicatorIconMidX(on screen: NSScreen) -> CGFloat? {
+        // While the panel is open, the indicator leaves the icon to it.
+        guard let item = statusItem, item.isVisible, !panel.isShown, let button = item.button,
+              let itemWindow = button.window, let itemScreen = itemWindow.screen else { return nil }
+        let imageRect = button.cell?.imageRect(forBounds: button.bounds) ?? button.bounds
+        let symbol = itemWindow.convertToScreen(button.convert(imageRect, to: nil))
+        // The status item is measured on one display's menu bar; the others show it in the same place.
+        return IndicatorPlacement.iconMidX(distanceFromRightEdge: itemScreen.frame.maxX - symbol.midX,
+                                           screenMaxX: screen.frame.maxX)
+    }
+
+    func setIconHighlighted(_ highlighted: Bool) {
+        guard let button = statusItem?.button, !panel.isShown, highlighted != highlightedForIndicator else { return }
+        highlightedForIndicator = highlighted
+        button.highlight(highlighted)
+    }
+
+    func setIconShowsDisplay(_ showsDisplay: Bool) {
+        guard let button = statusItem?.button, !panel.isShown,
+              let sun = Self.sunSymbol, let display = Self.displaySymbol else { return }
+        showsDisplaySymbol = showsDisplay
+        guard #available(macOS 14.0, *) else {
+            button.image = showsDisplay ? display : sun
+            return
+        }
+        if showsDisplay {
+            guard symbolView == nil else { return }
+            let view = Self.symbolView(drawing: sun, like: button)
+            button.addSubview(view)
+            // Keep the button's own sun, so the button keeps its size, but draw it clear.
+            button.contentTintColor = .clear
+            symbolView = view
+            view.setSymbolImage(display, contentTransition: .replace)
+        } else if let view = symbolView {
+            view.setSymbolImage(sun, contentTransition: .replace)
+            // Hand the symbol back to the button once the transition is over.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self, weak view] in
+                guard let self, let view, self.symbolView === view, !self.showsDisplaySymbol else { return }
+                self.resetIndicatorLook()
+            }
+        }
+    }
+
+    /// A view that draws `symbol` over `button` exactly as the button draws its image, so the
+    /// symbol can be swapped there with a transition.
+    @available(macOS 14.0, *)
+    private static func symbolView(drawing symbol: NSImage, like button: NSStatusBarButton) -> NSImageView {
+        // The button centers its image in the cell's image rectangle, which can sit off the
+        // middle of the button, and the image view centers it in its frame.
+        let imageRect = button.cell?.imageRect(forBounds: button.bounds) ?? button.bounds
+        let bounds = button.bounds
+        let view = NSImageView(frame: bounds.offsetBy(dx: imageRect.midX - bounds.midX, dy: imageRect.midY - bounds.midY))
+        view.image = symbol
+        view.symbolConfiguration = button.symbolConfiguration ?? matchingConfiguration(for: button.font)
+        view.imageScaling = .scaleNone
+        view.setAccessibilityElement(false)
+        return view
+    }
+
+    /// The configuration a status bar button gives a symbol when it has none of its own: sized
+    /// to its font, drawn medium weight. Measured against the button's own drawing on macOS 27,
+    /// in light and dark menu bars.
+    private static func matchingConfiguration(for font: NSFont?) -> NSImage.SymbolConfiguration {
+        NSImage.SymbolConfiguration(pointSize: font?.pointSize ?? NSFont.systemFontSize, weight: .medium, scale: .medium)
+    }
+
+    /// Puts the icon back as it is without the indicator, at once.
+    private func resetIndicatorLook(unhighlight: Bool = true) {
+        showsDisplaySymbol = false
+        if let view = symbolView {
+            view.removeFromSuperview()
+            symbolView = nil
+            statusItem?.button?.contentTintColor = nil
+        }
+        if let button = statusItem?.button, button.image !== Self.sunSymbol { button.image = Self.sunSymbol }
+        if highlightedForIndicator {
+            highlightedForIndicator = false
+            if unhighlight, !panel.isShown { statusItem?.button?.highlight(false) }
         }
     }
 }
